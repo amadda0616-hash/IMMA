@@ -1,0 +1,13 @@
+2번이 온톨로지 기반 og-rag 제시하는 논문
+
+도메인 별 온톨로지를 통합하여 사실 기반 적응을 가능하게 하는 og-rag
+
+graphrag, paptor, langchain, neo
+
+
+json-ld
+
+ragas
+
+쿼리
+
