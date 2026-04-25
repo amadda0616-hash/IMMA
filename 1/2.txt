@@ -1,0 +1,133 @@
+IMMA JSON 데이터 약속 설명서 (초안)
+목적
+
+VLM, RAG, DB, 서버 담당자가 각자 만든 기능을 서로 연결 가능하게 하기 위한 공통 JSON 규칙이다.
+
+즉:
+
+도면 분석 결과
+→ 업체 추천 결과
+→ DB 저장
+→ API 응답
+
+을 같은 형식으로 맞추기 위함.
+
+예시 JSON
+{
+  "request_id": 1,
+  "material": "SUS304",
+  "process": ["milling"],
+  "tolerance": "H7",
+  "candidate_suppliers": [
+    {
+      "supplier_id": 3,
+      "score": 0.87,
+      "reason": "SUS304 밀링 가능, H7 공차 대응 가능"
+    }
+  ]
+}
+항목 설명
+1. request_id
+발주 요청 번호
+각 요청마다 고유 번호
+DB의 requests 테이블과 연결
+
+예:
+
+1, 2, 3 ...
+2. material
+재질
+
+도면에서 추출한 소재 정보.
+
+예:
+
+SUS304
+AL6061
+SS400
+
+VLM 또는 OCR 결과로 들어올 수 있음.
+
+3. process
+가공 공정 목록
+
+배열 형태.
+
+예:
+
+["milling"]
+["turning", "drilling"]
+4. tolerance
+공차 정보
+
+예:
+
+H7
+±0.01
+±0.05
+
+정밀 가공 판단에 중요.
+
+5. candidate_suppliers
+추천 업체 목록
+
+RAG / 온톨로지 / 룰엔진이 생성.
+
+배열 형태로 여러 업체 가능.
+
+candidate_suppliers 내부 설명
+supplier_id
+업체 번호
+
+DB suppliers 테이블 PK.
+
+score
+추천 점수 (0~1)
+
+높을수록 적합.
+
+예:
+
+0.87
+0.65
+0.42
+reason
+추천 사유
+
+사용자에게 보여줄 설명.
+
+예:
+
+SUS304 밀링 가능
+5축 장비 보유
+납기 3일 가능
+H7 공차 대응 가능
+전체 흐름
+1. 사용자 도면 업로드
+2. VLM/OCR이 material, process, tolerance 추출
+3. JSON 생성
+4. RAG가 업체 검색
+5. candidate_suppliers 추가
+6. Railway FastAPI가 DB 저장
+7. 사용자에게 추천 결과 반환
+담당자별 역할
+VLM 담당
+
+채워야 할 부분:
+
+material
+process
+tolerance
+RAG 담당
+
+채워야 할 부분:
+
+candidate_suppliers
+DB/서버 담당
+
+저장/조회/API 처리:
+
+request_id 관리
+JSON 저장
+응답 반환
+로그 기록

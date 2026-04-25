@@ -1,0 +1,17 @@
+{
+  "request_id": 1,
+  "material": "SUS304",
+  "process": ["milling"],
+  "tolerance": "H7",
+  "candidate_suppliers": [
+    {
+      "supplier_id": 3,
+      "score": 0.87,
+      "reason": "SUS304 밀링 가능, H7 공차 대응 가능"
+    }
+  ]
+}
+-------------------------------------------------------
+VLM은 이 형식으로 준다         ?
+RAG는 이 형식으로 받는다      ?
+DB는 이 형식으로 저장한다     ?
