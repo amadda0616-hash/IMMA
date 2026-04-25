@@ -1,0 +1,24 @@
+rcld: 철도 운송에서 사용되는 기술도면
+
+yolov8n에 데이터 먹이는 과정에 대한 논문 같음
+
+최근접 이웃 보간법
+
+msda
+
+dilate attention 메커니즘
+
+rfaconv
+
+dysample
+
+pixel shuffle
+
+iddpm
+
+개선된 yolov8n 실험환경부터 데이터 전처리및 평가지표 설명 있음
+
+결론: 내용은 많은데... 뽑아낼 게 없다
+
+
+
