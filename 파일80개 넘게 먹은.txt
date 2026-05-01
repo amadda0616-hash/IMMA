@@ -1,0 +1,38 @@
+일단 이번 채팅방에서 준 파일들이 라그팀원이 준 파일들 + 내가 가진 .py들 전부야. 다시 읽어볼래? 
+
+
+좋아. 이번엔 “라그 팀원 자료”랑 “네 현재 서버/DB 코드”를 한 덩어리로 다시 묶어서 볼게. 핵심은 둘이 어떤 관계인지, 어디가 충돌나는지, 뭘 먼저 합쳐야 하는지야.
+
+12s 동안 생각함
+
+응. 다시 묶어서 보면 전체는 이렇게 나뉘어.
+
+1. RAG 팀원 파일들
+이건 IMMA Phase 1 매칭 파이프라인 완성 세트야. VLM JSON을 받아서 parse → resolve → match → response로 후보 업체를 반환하는 구조고, /api/match, /api/processes, /api/materials, /api/equipment-models, /api/health 같은 API까지 준비돼 있어.
+
+2. lookup / schema / catalog 파일들
+이건 RAG 팀원 파이프라인의 지식베이스야. lookup_data.json은 공차/재질/공정 룩업이고, equipment_catalog.json은 55개 장비 모델 카탈로그, equipment_template.json은 장비 모델 추가용 양식이야.
+
+3. RAG 팀원 DB 구조
+팀원 구조는 imma 스키마 기준이고, 핵심 테이블은 buyers, drawings, rfqs, rfq_parts, rfq_part_processes, companies, company_material_capabilities, company_process_capabilities, equipment, equipment_process_capabilities, company_capability_summary야.
+
+4. 네 현재 .py들
+네 코드는 Railway PostgreSQL에 붙은 MVP 서버/DB 실험 코드야. main.py는 /signup, /companies, /companies/buyers, /companies/suppliers, /rfq, /rfqs, /match/{rfq_id}, /vlm-result, /api/reviews를 제공하고 있어.
+server.py는 회원가입/로그인 쪽으로, /api/register, /api/login, /api/reviews, /api/companies가 중심이야.
+
+핵심 결론은 이거야:
+
+네 코드 = 이미 돌아가는 MVP 껍데기 / UI 연결용 서버
+팀원 코드 = 제조 매칭 엔진 본체
+lookup 폴더 = 매칭 엔진이 참고하는 지식베이스
+mock_data + 도면 = VLM JSON 테스트 재료
+
+그리고 제일 중요한 건 둘이 아직 바로 합쳐지는 구조는 아니라는 점이야.
+네 DB는 companies, contacts, material_capabilities, process_capabilities, rfqs 중심이고, 팀원 DB는 imma.company_material_capabilities, imma.company_process_capabilities, imma.rfq_parts, company_capability_summary 중심이야.
+
+그래서 지금은 이렇게 판단하면 돼:
+
+지금 네 프로젝트는 MVP 프론트/서버가 있고,
+RAG 팀원이 준 건 그 안에 넣을 수 있는 고급 매칭 엔진 후보.
+
+바로 덮어씌우면 위험하고, 제일 안전한 방향은 현재 서버 유지 + 팀원 파이프라인을 /api/match-v2로 따로 붙이기야.
