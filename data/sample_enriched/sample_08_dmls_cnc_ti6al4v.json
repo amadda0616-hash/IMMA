@@ -1,0 +1,146 @@
+{
+  "drawing_id": "SAMPLE-08",
+  "image_path": "data/raw/sample_08_turbine_blade.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "en",
+  "title_block": {
+    "drawing_no": "TBN-BLD-9912",
+    "title": "TURBINE COMPRESSOR BLADE - STAGE 3",
+    "material": "Ti-6Al-4V Grade 5",
+    "scale": "1:1",
+    "tolerance": "±0.05 (machined) / ±0.15 (as-printed)",
+    "revision": "E",
+    "date": "2026-04-08",
+    "drawn_by": "A.PETROV",
+    "checked_by": "M.GUPTA",
+    "approved_by": "DIRECTOR / ENG.",
+    "company": "AeroTurbine Systems Inc.",
+    "project": "TURBOJET-X3"
+  },
+  "notes": [
+    "1. MATERIAL: Ti-6Al-4V Grade 5 (ASTM F3001 ELI for AM)",
+    "2. PROCESS: DMLS / SLM ON EOS M290",
+    "3. POST-BUILD: HIP (HOT ISOSTATIC PRESSING) 920°C / 100MPa / 2h",
+    "4. STRESS RELIEF: 730°C / 2h IN ARGON",
+    "5. SUPPORT REMOVAL + 5-AXIS CNC FINISH ON ROOT INTERFACE",
+    "6. NDT: CT SCAN PER ASTM E1441, NO DEFECTS >100μm",
+    "7. AIRFOIL SURFACE Ra ≤1.6μm AFTER POLISHING"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "ISO + Sections",
+      "bbox": [400, 400, 4500, 2800],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[450,440],[2200,440],[2200,480],[450,480]], "conf": 0.95, "parsed": {"type": "Measure", "nominal": 145.0, "tolerance": {"upper": 0.05, "lower": -0.05}, "unit": "mm", "note": "blade height"}},
+        {"class": "Measure", "obb_global": [[2400,1200],[2520,1200],[2520,1250],[2400,1250]], "conf": 0.91, "parsed": {"type": "Measure", "nominal": 24.5, "tolerance": {"upper": 0.05, "lower": -0.05}, "unit": "mm", "note": "root chord"}},
+        {"class": "GDT", "obb_global": [[1500,2000],[2050,2000],[2050,2070],[1500,2070]], "conf": 0.93, "parsed": {"type": "GDT", "symbol": "⌒", "tolerance": 0.1, "datum": ["A","B"], "modifier": null, "note": "profile of surface (airfoil)"}},
+        {"class": "Roughness", "obb_global": [[3200,1500],[3340,1500],[3340,1560],[3200,1560]], "conf": 0.83, "parsed": {"type": "Roughness", "Ra": 1.6, "unit": "μm"}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:42:30Z",
+    "stats": {"fields_total": 8, "resolved_deterministic": 3, "resolved_heuristic": 1, "resolved_llm": 4, "flagged_hitl": 0},
+    "fields": {
+      "material": {
+        "original": "Ti-6Al-4V Grade 5",
+        "suggested": "Ti-6Al-4V Grade 5 (ASTM F3001 - PBF AM specific)",
+        "alternatives": [
+          {"value": "Ti-6Al-4V ELI Grade 23", "weight": 0.25, "note": "lower oxygen, biomedical/cryogenic"},
+          {"value": "IN718", "weight": 0.10, "note": "if higher T capability needed"},
+          {"value": "Ti-6Al-2Sn-4Zr-2Mo", "weight": 0.05, "note": "elevated-T variant"}
+        ],
+        "confidence": 0.96,
+        "method": "deterministic",
+        "source": "material_catalog.json#ASTM_F3001 + am_alloy_db.json",
+        "rationale": "Notes #1 명시. AM 항공용 Ti-6Al-4V 표준 ASTM F3001.",
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "±0.05 (machined) / ±0.15 (as-printed)",
+        "suggested": {"machined": "±0.05 mm (ISO 2768-fH equivalent)", "as_printed": "±0.15 mm typical for DMLS"},
+        "confidence": 0.94,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + am_tolerance_table.json",
+        "rationale": "AM + 기계가공 분리 표준. EOS M290 일반 사양 일치.",
+        "flagged_for_review": false
+      },
+      "additive_manufacturing_specification": {
+        "original": "DMLS/SLM EOS M290",
+        "suggested": {"process": "Direct Metal Laser Sintering (DMLS)", "machine": "EOS M290", "layer_thickness_um": 30, "build_orientation": "30° from vertical (typical)", "atmosphere": "argon", "energy_density_J_mm3": "~60", "standard": "ISO/ASTM 52900"},
+        "confidence": 0.92,
+        "method": "llm",
+        "source": "gemini-2.0-flash + am_process_catalog.json",
+        "rationale": "EOS M290 + Ti-6Al-4V 표준 빌드 파라미터.",
+        "flagged_for_review": false
+      },
+      "post_processing_sequence": {
+        "original": "HIP + stress relief + 5-axis CNC + polishing",
+        "suggested": [
+          {"step": "stress_relief", "spec": "730°C / 2h Ar"},
+          {"step": "support_removal", "spec": "manual + EDM"},
+          {"step": "HIP", "spec": "920°C / 100MPa / 2h"},
+          {"step": "cnc_5axis_finish", "spec": "root interface only"},
+          {"step": "polishing", "spec": "Ra ≤1.6μm airfoil"},
+          {"step": "ct_scan_NDT", "spec": "ASTM E1441, defects ≤100μm"}
+        ],
+        "confidence": 0.93,
+        "method": "llm",
+        "source": "gemini-2.0-flash + post_processing_catalog.json",
+        "rationale": "Notes #3-7 직접 추출 + AM 항공 부품 표준 시퀀스 매칭.",
+        "flagged_for_review": false
+      },
+      "hip_specification": {
+        "original": "920°C / 100MPa / 2h",
+        "suggested": {"temperature_C": 920, "pressure_MPa": 100, "duration_h": 2, "atmosphere": "argon", "purpose": "internal porosity closure", "expected_density_pct": ">99.9", "standard": "ASTM F2924"},
+        "confidence": 0.95,
+        "method": "deterministic",
+        "source": "hip_standards.json#ASTM_F2924",
+        "rationale": "Ti-6Al-4V AM 부품 ASTM F2924 표준 HIP 사양 일치.",
+        "flagged_for_review": false
+      },
+      "ndt_specification": {
+        "original": "CT scan, no defects >100μm",
+        "suggested": {"method": "industrial CT scan", "voxel_resolution_um": "≤50", "acceptance": "no defects >100μm any dimension", "standard": "ASTM E1441 + ASTM E1570"},
+        "confidence": 0.91,
+        "method": "heuristic",
+        "source": "ndt_standards.json + heuristics.py:ct_acceptance",
+        "rationale": "Notes #6 → 표준 항공 부품 CT NDT 매핑.",
+        "flagged_for_review": false
+      },
+      "regulatory_classification": {
+        "original": null,
+        "suggested": {"category": "AS9100 / FAA airworthy part", "traceability": "full lot + heat + powder batch", "implications": ["powder reuse limit", "in-process monitoring (melt pool)", "100% NDT", "first article inspection FAI per AS9102"]},
+        "confidence": 0.88,
+        "method": "llm",
+        "source": "gemini-2.0-flash + aerospace_compliance.json",
+        "rationale": "터빈 블레이드 + 항공 → AS9100 + FAA 표준 적용.",
+        "flagged_for_review": false
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": [
+          "Blade height 145 ±0.05",
+          "Root chord 24.5 ±0.05",
+          "Airfoil profile ⌒0.1 to A,B",
+          "Surface Ra ≤1.6μm (airfoil)",
+          "Density ≥99.9% (HIP verify)",
+          "CT scan no defect >100μm",
+          "Hardness 32-36 HRC after HIP",
+          "Lot/heat traceability per AS9102"
+        ],
+        "confidence": 0.90,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "AM 항공 critical part 표준 검사.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:42:30Z"
+  }
+}

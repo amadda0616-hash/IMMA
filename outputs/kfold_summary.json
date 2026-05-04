@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "source": "aggregate_kfold_results.py",
+    "decision": "Option F (5-fold CV)",
+    "metric_for_best": "metrics/mAP50(B)"
+  },
+  "per_fold": {
+    "0": {
+      "metrics/precision(B)": 0.77655,
+      "metrics/recall(B)": 0.75976,
+      "metrics/mAP50(B)": 0.82344,
+      "metrics/mAP50-95(B)": 0.52659,
+      "epoch": 250.0,
+      "train/box_loss": 0.43948,
+      "train/cls_loss": 0.30696,
+      "val/box_loss": 1.27549,
+      "val/cls_loss": 1.12615,
+      "best_epoch": 205.0
+    },
+    "1": {
+      "metrics/precision(B)": 0.88862,
+      "metrics/recall(B)": 0.97321,
+      "metrics/mAP50(B)": 0.95756,
+      "metrics/mAP50-95(B)": 0.74408,
+      "epoch": 250.0,
+      "train/box_loss": 0.41271,
+      "train/cls_loss": 0.29926,
+      "val/box_loss": 0.96328,
+      "val/cls_loss": 0.62625,
+      "best_epoch": 197.0
+    },
+    "2": {
+      "metrics/precision(B)": 0.94999,
+      "metrics/recall(B)": 0.89884,
+      "metrics/mAP50(B)": 0.97797,
+      "metrics/mAP50-95(B)": 0.85929,
+      "epoch": 250.0,
+      "train/box_loss": 0.436,
+      "train/cls_loss": 0.3245,
+      "val/box_loss": 0.61085,
+      "val/cls_loss": 0.47359,
+      "best_epoch": 150.0
+    },
+    "3": {
+      "metrics/precision(B)": 0.84248,
+      "metrics/recall(B)": 0.8956,
+      "metrics/mAP50(B)": 0.94378,
+      "metrics/mAP50-95(B)": 0.80164,
+      "epoch": 250.0,
+      "train/box_loss": 0.442,
+      "train/cls_loss": 0.31958,
+      "val/box_loss": 0.73484,
+      "val/cls_loss": 0.62436,
+      "best_epoch": 116.0
+    },
+    "4": {
+      "metrics/precision(B)": 0.92085,
+      "metrics/recall(B)": 0.87277,
+      "metrics/mAP50(B)": 0.95868,
+      "metrics/mAP50-95(B)": 0.81072,
+      "epoch": 250.0,
+      "train/box_loss": 0.42391,
+      "train/cls_loss": 0.31826,
+      "val/box_loss": 0.78413,
+      "val/cls_loss": 0.6386,
+      "best_epoch": 101.0
+    }
+  },
+  "summary": {
+    "metrics/precision(B)": {
+      "mean": 0.875698,
+      "std": 0.06829850635262824,
+      "min": 0.77655,
+      "max": 0.94999,
+      "n": 5
+    },
+    "metrics/recall(B)": {
+      "mean": 0.880036,
+      "std": 0.0771303016330158,
+      "min": 0.75976,
+      "max": 0.97321,
+      "n": 5
+    },
+    "metrics/mAP50(B)": {
+      "mean": 0.932286,
+      "std": 0.06205241719707623,
+      "min": 0.82344,
+      "max": 0.97797,
+      "n": 5
+    },
+    "metrics/mAP50-95(B)": {
+      "mean": 0.748464,
+      "std": 0.1306074175918045,
+      "min": 0.52659,
+      "max": 0.85929,
+      "n": 5
+    }
+  },
+  "best_fold": {
+    "fold": 2,
+    "mAP50": 0.97797
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "drawing_id": "SAMPLE-04",
+  "image_path": "data/raw/sample_04_precision_shaft.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "ja",
+  "title_block": {
+    "drawing_no": "SHF-PRC-0512",
+    "title": "精密駆動軸",
+    "material": "S45C",
+    "scale": "1:1",
+    "tolerance": "JIS B 0405 中級",
+    "revision": "A",
+    "date": "2026-03-05",
+    "drawn_by": "佐藤健",
+    "checked_by": "鈴木大輔",
+    "company": "山田工業株式会社",
+    "weight": "0.85kg"
+  },
+  "notes": [
+    "1. 材質: S45C (JIS G 4051)",
+    "2. 熱処理: 高周波焼入れ HRC58-62 / 焼戻し",
+    "3. 軸受嵌合部 研削仕上げ Ra 0.4",
+    "4. 一般公差 JIS B 0405 中級",
+    "5. センター穴 JIS B 0041 A2.5"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "正面図",
+      "bbox": [400, 1200, 4500, 1800],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[450,1240],[4400,1240],[4400,1280],[450,1280]], "conf": 0.96, "parsed": {"type": "Measure", "nominal": 280.0, "tolerance": {"upper": 0.1, "lower": -0.1}, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[800,1700],[920,1700],[920,1750],[800,1750]], "conf": 0.94, "parsed": {"type": "Measure", "nominal": 25.0, "diameter": true, "tolerance_class": "k6", "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[2200,1700],[2350,1700],[2350,1750],[2200,1750]], "conf": 0.93, "parsed": {"type": "Measure", "nominal": 30.0, "diameter": true, "tolerance_class": "h6", "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[3600,1700],[3720,1700],[3720,1750],[3600,1750]], "conf": 0.92, "parsed": {"type": "Measure", "nominal": 25.0, "diameter": true, "tolerance_class": "k6", "unit": "mm"}},
+        {"class": "GDT", "obb_global": [[1500,1900],[1900,1900],[1900,1960],[1500,1960]], "conf": 0.93, "parsed": {"type": "GDT", "symbol": "⌭", "tolerance": 0.01, "datum": ["A-B"]}},
+        {"class": "Roughness", "obb_global": [[850,1640],[970,1640],[970,1690],[850,1690]], "conf": 0.84, "parsed": {"type": "Roughness", "Ra": 0.4, "unit": "μm"}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:36:30Z",
+    "stats": {"fields_total": 7, "resolved_deterministic": 4, "resolved_heuristic": 1, "resolved_llm": 2, "flagged_hitl": 0},
+    "fields": {
+      "material": {
+        "original": "S45C",
+        "suggested": "S45C (JIS G 4051) 機械構造用炭素鋼",
+        "alternatives": [
+          {"value": "S50C", "weight": 0.20, "note": "若干高硬度要求時"},
+          {"value": "SCM440", "weight": 0.15, "note": "高負荷駆動軸"},
+          {"value": "1045 (AISI)", "weight": 0.10, "note": "米国規格相当"}
+        ],
+        "confidence": 0.96,
+        "method": "deterministic",
+        "source": "material_catalog.json#JIS_G_4051",
+        "rationale": "Notes #1 直接記述. 駆動軸の最も一般的な材質.",
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "JIS B 0405 中級",
+        "suggested": "JIS B 0405 中級 (= ISO 2768-mK 同等)",
+        "confidence": 0.98,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + jis_b_0405.json",
+        "rationale": "標準明示.",
+        "flagged_for_review": false
+      },
+      "heat_treatment": {
+        "original": "高周波焼入れ HRC58-62 / 焼戻し",
+        "suggested": {"process": "induction_hardening", "hardness": "HRC 58-62", "tempering": "low temperature 180°C", "depth_mm": "2-3", "standard": "JIS G 0559"},
+        "confidence": 0.94,
+        "method": "deterministic",
+        "source": "heat_treatment_catalog.json",
+        "rationale": "Notes #2 + S45C 標準誘導加熱深さ.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": ["cnc_turning_rough", "cnc_turning_semi_finish", "induction_hardening", "tempering", "cylindrical_grinding_Ra0.4", "center_hole_A2.5"],
+        "confidence": 0.92,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "S45C + HRC58-62 + Ra 0.4 軸受嵌合 → 旋削後熱処理→研削の標準シーケンス.",
+        "flagged_for_review": false
+      },
+      "fit_class_normalized": {
+        "original": "k6 (軸受部) / h6 (中央)",
+        "suggested": [
+          {"location": "Ø25 k6", "fit_type": "interference", "use": "ベアリング内輪嵌合"},
+          {"location": "Ø30 h6", "fit_type": "loose", "use": "歯車 sliding fit"}
+        ],
+        "confidence": 0.90,
+        "method": "heuristic",
+        "source": "heuristics.py:fit_class_lookup + iso_286.json",
+        "rationale": "k6 = 圧入嵌合 (軸受標準), h6 = 滑り嵌合.",
+        "flagged_for_review": false
+      },
+      "surface_roughness_default": {
+        "original": "Ra 0.4 (research surfaces)",
+        "suggested": "Ra 0.4 μm (bearing fit), Ra 1.6 μm (other turned)",
+        "confidence": 0.93,
+        "method": "deterministic",
+        "source": "machining_roughness_table.json",
+        "rationale": "Notes #3 + 標準旋削仕上げ.",
+        "flagged_for_review": false
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": [
+          "全長 280 ±0.1",
+          "Ø25 k6 (両端) - micrometer",
+          "Ø30 h6 (中央)",
+          "同軸度 ⌭0.01 A-B",
+          "Ra 0.4 軸受部 (粗さ計)",
+          "硬度 HRC58-62 (4箇所抜取)"
+        ],
+        "confidence": 0.88,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "嵌合公差 + 同軸度 + 表面粗さ + 硬度がcritical.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:36:30Z"
+  }
+}

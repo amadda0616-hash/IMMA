@@ -1,0 +1,127 @@
+{
+  "drawing_id": "SAMPLE-06",
+  "image_path": "data/raw/sample_06_auto_cross_member.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "ja",
+  "title_block": {
+    "drawing_no": "AUTO-CRS-1107",
+    "title": "クロスメンバー Aピラー側",
+    "material": "SAPH440",
+    "scale": "1:2.5",
+    "tolerance": "JIS B 0405 粗級",
+    "thickness": "2.3t",
+    "revision": "C",
+    "date": "2026-01-15",
+    "drawn_by": "田中浩二",
+    "checked_by": "高橋 誠",
+    "company": "中部自動車部品株式会社",
+    "project": "Model AX-2027"
+  },
+  "notes": [
+    "1. 材質: SAPH440 (JIS G 3113 自動車構造用熱間圧延鋼板)",
+    "2. 一般公差 JIS B 0405 粗級",
+    "3. プレス: 順送型 4工程",
+    "4. スポット溶接: φ6.0 ナゲット, 12点, JIS Z 3140 A級",
+    "5. 防錆処理: ED塗装 + ワックス含浸",
+    "6. 重要保安部品 (PL認証対象)"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "平面図",
+      "bbox": [400, 600, 4500, 2100],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[450,640],[4400,640],[4400,680],[450,680]], "conf": 0.96, "parsed": {"type": "Measure", "nominal": 850.0, "tolerance": {"upper": 1.0, "lower": -1.0}, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[200,800],[240,800],[240,2000],[200,2000]], "conf": 0.94, "parsed": {"type": "Measure", "nominal": 220.0, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[1200,1200],[1310,1200],[1310,1250],[1200,1250]], "conf": 0.85, "parsed": {"type": "Measure", "nominal": 6.0, "diameter": true, "unit": "mm", "note": "weld nugget"}},
+        {"class": "GDT", "obb_global": [[2200,1500],[2700,1500],[2700,1560],[2200,1560]], "conf": 0.88, "parsed": {"type": "GDT", "symbol": "⏥", "tolerance": 0.5, "datum": ["A"]}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:39:30Z",
+    "stats": {"fields_total": 7, "resolved_deterministic": 3, "resolved_heuristic": 1, "resolved_llm": 3, "flagged_hitl": 0},
+    "fields": {
+      "material": {
+        "original": "SAPH440",
+        "suggested": "SAPH440 (JIS G 3113) 自動車用熱延高張力鋼板",
+        "alternatives": [
+          {"value": "SAPH370", "weight": 0.20, "note": "強度若干低い"},
+          {"value": "JSC270C (冷延)", "weight": 0.15, "note": "薄物代替"},
+          {"value": "HSLA Grade 60 (米国)", "weight": 0.10, "note": "ASTM相当"}
+        ],
+        "confidence": 0.97,
+        "method": "deterministic",
+        "source": "material_catalog.json#JIS_G_3113",
+        "rationale": "Notes #1 直接記述. 自動車クロスメンバー高張力鋼の標準.",
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "JIS B 0405 粗級",
+        "suggested": "JIS B 0405 粗級 (= ISO 2768-c)",
+        "confidence": 0.97,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + jis_b_0405.json",
+        "rationale": "標準明示. プレス量産部品の許容公差.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": ["progressive_die_stamping_4_steps", "spot_welding_12pts_GTAW", "ED_painting_cathodic", "wax_impregnation"],
+        "confidence": 0.93,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "SAPH440 + 順送型 + スポット溶接 + ED塗装 → 自動車部品量産標準.",
+        "flagged_for_review": false
+      },
+      "weld_specification": {
+        "original": "spot weld φ6.0 nugget x12, JIS Z 3140 A級",
+        "suggested": {"process": "RSW (resistance spot welding)", "nugget_diameter_mm": 6.0, "count": 12, "quality_class": "A", "standard": "JIS Z 3140", "destructive_test_freq": "1 per 1000 parts"},
+        "confidence": 0.95,
+        "method": "deterministic",
+        "source": "weld_standards.json#JIS_Z_3140",
+        "rationale": "Notes #4 直接パース. A級 = ピール試験NG許容ゼロ.",
+        "flagged_for_review": false
+      },
+      "coating_specification": {
+        "original": "ED塗装 + ワックス含浸",
+        "suggested": {"type": "cathodic_electrodeposition (CED)", "thickness_um": "20-25", "wax": "anti-rust impregnation in box section", "salt_spray_h": "≥720h"},
+        "confidence": 0.91,
+        "method": "llm",
+        "source": "gemini-2.0-flash + coating_catalog.json",
+        "rationale": "Notes #5 + 自動車構造部品標準. 塩水噴霧720h標準.",
+        "flagged_for_review": false
+      },
+      "regulatory_classification": {
+        "original": "重要保安部品 PL認証対象",
+        "suggested": {"safety_critical": true, "regulation": "PL法 (製造物責任)", "implications": ["traceability_required", "100% nondestructive_check_or_PPM_control", "supplier_audit_quarterly"]},
+        "confidence": 0.88,
+        "method": "heuristic",
+        "source": "heuristics.py:safety_critical_detection",
+        "rationale": "Notes #6 検出 → 自動車保安部品の標準要件適用.",
+        "flagged_for_review": false
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": [
+          "全長 850 ±1.0",
+          "幅 220 ±1.0",
+          "平面度 ⏥0.5 to A",
+          "スポット溶接ナゲット径 ≥φ5.0 (溶け落ち不可)",
+          "ED塗装膜厚 20-25μm 全数",
+          "PPM ≤30 (重要保安基準)"
+        ],
+        "confidence": 0.89,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "保安部品 + スポット溶接 + 塗装の標準QC.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:39:30Z"
+  }
+}

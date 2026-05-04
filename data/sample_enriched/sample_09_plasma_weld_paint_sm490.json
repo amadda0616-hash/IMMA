@@ -1,0 +1,138 @@
+{
+  "drawing_id": "SAMPLE-09",
+  "image_path": "data/raw/sample_09_bridge_gusset.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "ru",
+  "title_block": {
+    "drawing_no": "BRG-GST-2204",
+    "title": "Косынка опорного узла моста",
+    "material": "SM490A",
+    "scale": "1:5",
+    "tolerance": "ГОСТ 30893-1 средний",
+    "thickness": "16t",
+    "revision": "Б",
+    "date": "2026-03-20",
+    "drawn_by": "А. Иванов",
+    "checked_by": "С. Петров",
+    "approved_by": "Главный инженер",
+    "company": "МостСтройПроект ООО",
+    "project": "Мост через р. Нева"
+  },
+  "notes": [
+    "1. Материал: SM490A (JIS G 3106) / 09Г2С (ГОСТ 19281)",
+    "2. Резка: плазменная, ЧПУ",
+    "3. Сварка: РДС электродом Э50А, ГОСТ 9466",
+    "4. Класс шва: I по ГОСТ 23118",
+    "5. Антикоррозионное покрытие: грунт ЭП-0199 + эмаль ХВ-785",
+    "6. Контроль: УЗК всех швов по ГОСТ Р 55724"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "Главный вид",
+      "bbox": [400, 500, 4500, 2700],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[450,540],[4400,540],[4400,580],[450,580]], "conf": 0.94, "parsed": {"type": "Measure", "nominal": 1200.0, "tolerance": {"upper": 2.0, "lower": -2.0}, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[200,800],[240,800],[240,2600],[200,2600]], "conf": 0.93, "parsed": {"type": "Measure", "nominal": 800.0, "tolerance": {"upper": 2.0, "lower": -2.0}, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[1200,1500],[1340,1500],[1340,1550],[1200,1550]], "conf": 0.86, "parsed": {"type": "Measure", "nominal": 30.0, "diameter": true, "unit": "mm", "note": "M30 болт под высокопрочный"}},
+        {"class": "GDT", "obb_global": [[2500,1900],[2900,1900],[2900,1960],[2500,1960]], "conf": 0.83, "parsed": {"type": "GDT", "symbol": "⏥", "tolerance": 1.0, "datum": ["A"]}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:44:00Z",
+    "stats": {"fields_total": 7, "resolved_deterministic": 3, "resolved_heuristic": 1, "resolved_llm": 2, "flagged_hitl": 1},
+    "fields": {
+      "material": {
+        "original": "SM490A / 09Г2С",
+        "suggested": "SM490A (JIS G 3106) ≈ 09Г2С (ГОСТ 19281) ≈ S355J2 (EN 10025-2)",
+        "alternatives": [
+          {"value": "SM520B", "weight": 0.20, "note": "повышенная прочность"},
+          {"value": "10ХСНД (ГОСТ)", "weight": 0.15, "note": "северное исполнение"},
+          {"value": "A572 Grade 50 (ASTM)", "weight": 0.10, "note": "американский эквивалент"}
+        ],
+        "confidence": 0.95,
+        "method": "deterministic",
+        "source": "material_catalog.json#cross_standard_map",
+        "rationale": "Notes #1 явно указано. Кросс-стандарт JIS↔ГОСТ↔EN автоматически.",
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "ГОСТ 30893-1 средний",
+        "suggested": "ГОСТ 30893-1 средний класс (= ISO 2768-mK эквивалент)",
+        "confidence": 0.95,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + gost_30893.json",
+        "rationale": "Стандарт явно прописан. Эквивалентен ISO 2768-mK.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": [
+          "plasma_cutting_CNC",
+          "edge_grinding_for_welding",
+          "manual_arc_welding_E50A",
+          "weld_inspection_UZK",
+          "cleaning_blast",
+          "primer_EP_0199",
+          "topcoat_HV_785"
+        ],
+        "confidence": 0.91,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "SM490A 16t + плазменная резка + РДС + антикор → стандартная последовательность мостовых конструкций.",
+        "flagged_for_review": false
+      },
+      "weld_specification": {
+        "original": "РДС электродом Э50А, класс I по ГОСТ 23118",
+        "suggested": {"process": "SMAW (РДС / manual stick)", "electrode": "Э50А (ГОСТ 9466) ≈ E7016", "weld_class": "I", "standard": "ГОСТ 23118-2019", "ndt": "100% UZK per ГОСТ Р 55724"},
+        "confidence": 0.94,
+        "method": "deterministic",
+        "source": "weld_standards.json#GOST_23118 + GOST_9466",
+        "rationale": "Notes #3-4,6 прямой парсинг. Класс I = высшая категория ответственности.",
+        "flagged_for_review": false
+      },
+      "coating_specification": {
+        "original": "грунт ЭП-0199 + эмаль ХВ-785",
+        "suggested": {"primer": {"name": "ЭП-0199", "type": "epoxy", "thickness_um": "60-80"}, "topcoat": {"name": "ХВ-785", "type": "perchlorovinyl", "thickness_um": "40-60"}, "total_thickness_um": "100-140", "service_temp_C": "-50 to +60"},
+        "confidence": 0.88,
+        "method": "llm",
+        "source": "gemini-2.0-flash + coating_catalog.json",
+        "rationale": "Российская стандартная антикор-система для мостовых конструкций.",
+        "flagged_for_review": false
+      },
+      "surface_roughness_default": {
+        "original": null,
+        "suggested": "Ra 12.5 μm (plasma-cut edges, after grinding)",
+        "confidence": 0.62,
+        "method": "heuristic",
+        "source": "machining_roughness_table.json",
+        "rationale": "Плазменная резка после шлифовки кромок под сварку. Точное значение зависит от качества зачистки.",
+        "flagged_for_review": true,
+        "hitl_reason": "confidence < 0.70 + критично для сварки, требуется уточнение у инженера"
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": [
+          "Длина 1200 ±2 мм",
+          "Высота 800 ±2 мм",
+          "Плоскостность ⏥1.0 to A",
+          "Швы класс I — 100% УЗК",
+          "Толщина грунта 60-80μm",
+          "Толщина эмали 40-60μm",
+          "Адгезия покрытия не ниже 1 балла (ГОСТ 31149)"
+        ],
+        "confidence": 0.85,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "Мостовая конструкция класса I — обязательный контроль швов и покрытия.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:44:00Z"
+  }
+}

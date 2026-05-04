@@ -1,0 +1,126 @@
+{
+  "drawing_id": "SAMPLE-02",
+  "image_path": "data/raw/sample_02_pump_bracket.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "en",
+  "title_block": {
+    "drawing_no": "PMP-BRK-204",
+    "title": "PUMP MOUNTING BRACKET",
+    "material": "Stainless Steel",
+    "scale": "1:1",
+    "tolerance": "ISO 2768-mK",
+    "thickness": "6t",
+    "revision": "C",
+    "date": "2026-02-08",
+    "drawn_by": "J.HARRIS",
+    "checked_by": "M.LEE",
+    "company": "OceanFlow Industries"
+  },
+  "notes": [
+    "1. UNLESS OTHERWISE SPECIFIED, ALL DIMENSIONS IN MM",
+    "2. MATERIAL: STAINLESS STEEL 6mm",
+    "3. CUT: ABRASIVE WATERJET, MACHINED HOLES PER DETAIL A",
+    "4. WELD: GTAW, ER316L FILLER, FULL PENETRATION",
+    "5. PASSIVATION PER ASTM A967"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "FRONT",
+      "bbox": [400, 500, 2600, 2400],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[450,540],[2400,540],[2400,580],[450,580]], "conf": 0.96, "parsed": {"type": "Measure", "nominal": 320.0, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[1200,1500],[1300,1500],[1300,1540],[1200,1540]], "conf": 0.94, "parsed": {"type": "Measure", "nominal": 12.0, "unit": "mm", "thread": "M12x1.75", "depth": 18}},
+        {"class": "Measure", "obb_global": [[1800,1500],[1900,1500],[1900,1540],[1800,1540]], "conf": 0.92, "parsed": {"type": "Measure", "nominal": 14.0, "unit": "mm", "diameter": true, "counterbore": {"diameter": 24.0, "depth": 8.0}}},
+        {"class": "GDT", "obb_global": [[1100,1700],[1500,1700],[1500,1760],[1100,1760]], "conf": 0.91, "parsed": {"type": "GDT", "symbol": "⊥", "tolerance": 0.05, "datum": ["A"]}}
+      ]
+    },
+    {
+      "view_id": "view_1",
+      "label": "DETAIL A",
+      "bbox": [2700, 500, 4800, 2200],
+      "annotations": [
+        {"class": "Roughness", "obb_global": [[3200,1100],[3340,1100],[3340,1150],[3200,1150]], "conf": 0.79, "parsed": {"type": "Roughness", "Ra": 3.2, "unit": "μm"}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:33:50Z",
+    "stats": {"fields_total": 7, "resolved_deterministic": 2, "resolved_heuristic": 2, "resolved_llm": 3, "flagged_hitl": 0},
+    "fields": {
+      "material": {
+        "original": "Stainless Steel",
+        "suggested": "SUS316L (ASTM A240 316L)",
+        "alternatives": [
+          {"value": "SUS304L", "weight": 0.20, "note": "원가 절감, 내식성 다소 낮음"},
+          {"value": "SUS2205 duplex", "weight": 0.10, "note": "고염해 환경 시"}
+        ],
+        "confidence": 0.91,
+        "method": "llm",
+        "source": "gemini-2.0-flash + material_catalog.json",
+        "rationale": "펌프 마운트 + ER316L 필러 노트 #4 → 모재도 316L. 해수/약품 환경 펌프 표준.",
+        "evidence": [{"type": "ocr_keyword", "snippet": "ER316L", "context": "Notes #4"}],
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "ISO 2768-mK",
+        "suggested": "ISO 2768-mK",
+        "confidence": 1.0,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json",
+        "rationale": "도면에 명시. 변환 불필요.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": ["abrasive_waterjet_cutting", "cnc_drilling", "cnc_tapping_M12x1.75", "cnc_counterboring", "GTAW_welding_ER316L", "passivation_ASTM_A967"],
+        "confidence": 0.93,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "Notes #3-5 + tap/counterbore 검출 → 워터젯 절단 후 CNC 가공, 용접, 패시베이션 표준 시퀀스.",
+        "flagged_for_review": false
+      },
+      "weld_specification": {
+        "original": "GTAW, ER316L, full penetration",
+        "suggested": {"process": "GTAW (TIG)", "filler": "ER316L", "joint": "full penetration", "standard": "AWS D18.1"},
+        "confidence": 0.95,
+        "method": "heuristic",
+        "source": "weld_keyword_parser.py",
+        "rationale": "Notes #4 직접 파싱.",
+        "flagged_for_review": false
+      },
+      "thread_specs_normalized": {
+        "original": "M12x1.75",
+        "suggested": {"designation": "M12 x 1.75", "class": "6H", "depth_mm": 18, "standard": "ISO 965-1"},
+        "confidence": 0.90,
+        "method": "heuristic",
+        "source": "heuristics.py:thread_callout",
+        "rationale": "Standard metric coarse thread. 클래스 6H 가 일반 가정값.",
+        "flagged_for_review": false
+      },
+      "surface_roughness_default": {
+        "original": "Ra 3.2 (machined faces)",
+        "suggested": "Ra 3.2 μm",
+        "confidence": 0.92,
+        "method": "deterministic",
+        "source": "machining_roughness_table.json",
+        "rationale": "Detail A 명시값.",
+        "flagged_for_review": false
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": ["320 ±0.3 (mK class)", "M12x1.75 thread gauge", "Ø14 + Ø24 cbore concentricity", "perpendicularity ⊥0.05 to A"],
+        "confidence": 0.85,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "조립 critical features + GD&T 추출.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:33:50Z"
+  }
+}

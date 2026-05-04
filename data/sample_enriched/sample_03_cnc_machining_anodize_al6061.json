@@ -1,0 +1,120 @@
+{
+  "drawing_id": "SAMPLE-03",
+  "image_path": "data/raw/sample_03_aerospace_mount.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "en",
+  "title_block": {
+    "drawing_no": "AVN-MNT-7301",
+    "title": "AVIONICS MOUNTING PLATE",
+    "material": "AL6061-T6",
+    "scale": "2:1",
+    "tolerance": "±0.05",
+    "thickness": "10t",
+    "revision": "D",
+    "date": "2026-01-22",
+    "drawn_by": "S.MARTINEZ",
+    "checked_by": "K.OBRIEN",
+    "approved_by": "T.YAMAMOTO",
+    "company": "Aerocraft Solutions",
+    "project": "Project FALCON-9X"
+  },
+  "notes": [
+    "1. MATERIAL: ALUMINUM 6061-T6 PER AMS-QQ-A-250/11",
+    "2. ALL DIMENSIONS PER ASME Y14.5-2018",
+    "3. SURFACE FINISH Ra 1.6 UNLESS OTHERWISE NOTED",
+    "4. ANODIZE: TYPE II CLASS 1, BLACK, MIL-A-8625",
+    "5. MASK THREADED HOLES PRIOR TO ANODIZING"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "TOP VIEW",
+      "bbox": [350, 400, 3400, 2400],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[420,440],[3300,440],[3300,480],[420,480]], "conf": 0.97, "parsed": {"type": "Measure", "nominal": 145.0, "tolerance": {"upper": 0.05, "lower": -0.05}, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[800,900],[900,900],[900,940],[800,940]], "conf": 0.94, "parsed": {"type": "Measure", "nominal": 6.0, "diameter": true, "tolerance_class": "H7", "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[1700,900],[1820,900],[1820,940],[1700,940]], "conf": 0.93, "parsed": {"type": "Measure", "thread": "M5x0.8", "depth": 10, "unit": "mm"}},
+        {"class": "GDT", "obb_global": [[1000,1500],[1450,1500],[1450,1560],[1000,1560]], "conf": 0.95, "parsed": {"type": "GDT", "symbol": "⌖", "tolerance": 0.025, "datum": ["A","B","C"], "modifier": "Ⓜ"}},
+        {"class": "Roughness", "obb_global": [[2400,1100],[2520,1100],[2520,1150],[2400,1150]], "conf": 0.82, "parsed": {"type": "Roughness", "Ra": 0.8, "unit": "μm"}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:35:00Z",
+    "stats": {"fields_total": 7, "resolved_deterministic": 4, "resolved_heuristic": 1, "resolved_llm": 2, "flagged_hitl": 0},
+    "fields": {
+      "material": {
+        "original": "AL6061-T6",
+        "suggested": "Al 6061-T6 (AMS-QQ-A-250/11)",
+        "alternatives": [
+          {"value": "Al 7075-T6", "weight": 0.20, "note": "더 높은 강도, 부식 감수"},
+          {"value": "Al 2024-T3", "weight": 0.10, "note": "항공 구조재 클래식"}
+        ],
+        "confidence": 0.97,
+        "method": "deterministic",
+        "source": "material_catalog.json#AMS_QQ_A_250_11",
+        "rationale": "Notes #1 직접 표준 규격 명시. 6061-T6 + 항공 마운트 가장 일반적.",
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "±0.05",
+        "suggested": "ASME Y14.5-2018 / tight tolerance class",
+        "confidence": 0.98,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + asme_y145.json",
+        "rationale": "Notes #2 명시. ±0.05 = fine class.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": ["cnc_milling_3axis", "cnc_drilling", "cnc_reaming_H7", "cnc_tapping_M5x0.8", "deburring", "anodize_type_II_class_1_black"],
+        "confidence": 0.92,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "T6 알루미늄 + H7 정밀 홀 + M5 탭 + 아노다이징 → 항공 마운트 표준 가공 시퀀스.",
+        "flagged_for_review": false
+      },
+      "anodize_specification": {
+        "original": "Type II Class 1, Black, MIL-A-8625",
+        "suggested": {"type": "II (sulfuric)", "class": "1 (non-dyed)", "color": "black (dyed)", "thickness_um": "5-25", "standard": "MIL-A-8625F", "masking": "threaded holes"},
+        "confidence": 0.96,
+        "method": "deterministic",
+        "source": "anodize_standards.json",
+        "rationale": "Notes #4-5 직접 파싱.",
+        "flagged_for_review": false
+      },
+      "thread_specs_normalized": {
+        "original": "M5x0.8",
+        "suggested": {"designation": "M5 x 0.8", "class": "6H", "depth_mm": 10, "standard": "ISO 965-1", "post_anodize_chase": true},
+        "confidence": 0.93,
+        "method": "heuristic",
+        "source": "heuristics.py:thread_callout + masking_rule",
+        "rationale": "Notes #5 → 아노다이징 후 탭 chase 권장.",
+        "flagged_for_review": false
+      },
+      "surface_roughness_default": {
+        "original": "Ra 1.6 default, Ra 0.8 specific",
+        "suggested": "Ra 1.6 μm (default), Ra 0.8 μm (mating surface)",
+        "confidence": 0.95,
+        "method": "deterministic",
+        "source": "machining_roughness_table.json",
+        "rationale": "Notes #3 + view annotation 직접 추출.",
+        "flagged_for_review": false
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": ["145 ±0.05 (length)", "Ø6 H7 reamed bore", "M5 thread gauge go/no-go", "TP ⌖0.025 Ⓜ A B C", "Ra 0.8 mating face", "anodize layer 5-25μm"],
+        "confidence": 0.88,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "항공 부품 critical features + GD&T 모두 검사 대상.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:35:00Z"
+  }
+}

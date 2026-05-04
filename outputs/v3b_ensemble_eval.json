@@ -1,0 +1,53 @@
+{
+  "val_txt": "data/annotation_kfold/fold_2/val.txt",
+  "n_images": 110,
+  "n_skipped": 0,
+  "ensemble_n_folds": 5,
+  "conf": 0.25,
+  "iou_nms": 0.5,
+  "iou_match": 0.5,
+  "imgsz": 1024,
+  "per_class": {
+    "Measure": {
+      "tp": 99,
+      "fp": 46,
+      "fn": 0,
+      "n_gt": 99,
+      "precision": 0.6828,
+      "recall": 1.0,
+      "missing_rate": 0.0,
+      "missing_threshold": 0.08,
+      "severity": "critical",
+      "pass": true
+    },
+    "GDT": {
+      "tp": 28,
+      "fp": 5,
+      "fn": 0,
+      "n_gt": 28,
+      "precision": 0.8485,
+      "recall": 1.0,
+      "missing_rate": 0.0,
+      "missing_threshold": 0.05,
+      "severity": "critical",
+      "pass": true
+    },
+    "Roughness": {
+      "tp": 11,
+      "fp": 2,
+      "fn": 0,
+      "n_gt": 11,
+      "precision": 0.8462,
+      "recall": 1.0,
+      "missing_rate": 0.0,
+      "missing_threshold": 0.3,
+      "severity": "warning",
+      "pass": true
+    }
+  },
+  "drawing_recall_mean": 1.0,
+  "drawing_recall_threshold": 0.85,
+  "drawing_recall_pass": true,
+  "d023_overall_pass": true,
+  "d023_failures": []
+}

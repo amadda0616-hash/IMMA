@@ -1,0 +1,248 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" font-family="Arial, sans-serif">
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" font-size="20" font-weight="bold">
+    Multi-Stage Hybrid Framework — Current Pipeline
+  </text>
+  <text x="700" y="52" text-anchor="middle" font-size="12" fill="#555">
+    Pale yellow boxes indicate stages where deep learning plays a fundamental role.
+  </text>
+
+  <!-- Style legend -->
+  <g transform="translate(40, 70)">
+    <rect x="0" y="0" width="18" height="14" fill="#FFF4C2" stroke="#444"/>
+    <text x="22" y="11" font-size="11">DL/VLM stage</text>
+    <rect x="120" y="0" width="18" height="14" fill="#ffffff" stroke="#444"/>
+    <text x="142" y="11" font-size="11">I/O artifact</text>
+    <rect x="220" y="0" width="18" height="14" fill="#E6F0FF" stroke="#444"/>
+    <text x="242" y="11" font-size="11">Cluster / parent block</text>
+    <rect x="380" y="0" width="18" height="14" fill="#E8F5E9" stroke="#444"/>
+    <text x="402" y="11" font-size="11">Final output</text>
+  </g>
+
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
+  </defs>
+
+  <!-- ============================================================== -->
+  <!-- STEP 0: INPUT                                                  -->
+  <!-- ============================================================== -->
+  <g>
+    <rect x="40" y="120" width="200" height="60" rx="10" fill="#ffffff" stroke="#333" stroke-width="2"/>
+    <text x="140" y="150" text-anchor="middle" font-size="14" font-weight="bold">Mechanical Drawing</text>
+    <text x="140" y="168" text-anchor="middle" font-size="11" fill="#555">JPG (KO / EN / JP / RU)</text>
+  </g>
+  <line x1="140" y1="180" x2="140" y2="215" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================== -->
+  <!-- STEP 1.5: SORT BY TITLEBLOCK                                   -->
+  <!-- ============================================================== -->
+  <g>
+    <rect x="40" y="220" width="200" height="80" rx="6" fill="#FFF4C2" stroke="#444" stroke-width="1.5"/>
+    <text x="140" y="245" text-anchor="middle" font-size="13" font-weight="bold">Sort by TitleBlock</text>
+    <text x="140" y="262" text-anchor="middle" font-size="10" fill="#555">Pytesseract  multilingual</text>
+    <text x="140" y="276" text-anchor="middle" font-size="10" fill="#555">+ line-density heuristic</text>
+    <text x="140" y="293" text-anchor="middle" font-size="9" fill="#888">See sort_by_titleblock.py</text>
+  </g>
+  <line x1="140" y1="300" x2="140" y2="340" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 3 destinations -->
+  <g>
+    <rect x="20" y="345" width="100" height="40" fill="#ffffff" stroke="#333"/>
+    <text x="70" y="361" text-anchor="middle" font-size="10" font-weight="bold">stage1_titleblock</text>
+    <text x="70" y="375" text-anchor="middle" font-size="9" fill="#555">→ Stage 1 train</text>
+
+    <rect x="130" y="345" width="100" height="40" fill="#ffffff" stroke="#333"/>
+    <text x="180" y="361" text-anchor="middle" font-size="10" font-weight="bold">stage2_no_titleblock</text>
+    <text x="180" y="375" text-anchor="middle" font-size="9" fill="#555">→ Stage 2 train</text>
+
+    <rect x="240" y="345" width="80" height="40" fill="#ffffff" stroke="#333"/>
+    <text x="280" y="361" text-anchor="middle" font-size="10" font-weight="bold">manual_review</text>
+    <text x="280" y="375" text-anchor="middle" font-size="9" fill="#555">→ human</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- MAIN INFERENCE PIPELINE  (right side flow)                     -->
+  <!-- ============================================================== -->
+
+  <!-- Container box for "main inference" -->
+  <rect x="380" y="100" width="980" height="780" rx="12" fill="none" stroke="#aaa" stroke-dasharray="6,4"/>
+  <text x="870" y="120" text-anchor="middle" font-size="13" font-style="italic" fill="#666">
+    Inference Pipeline (used at runtime; sorter above is data-prep only)
+  </text>
+
+  <!-- Drawing -> Stage 1 -->
+  <line x1="240" y1="150" x2="430" y2="150" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================== -->
+  <!-- STAGE 1: YOLOv11-det                                           -->
+  <!-- ============================================================== -->
+  <g>
+    <rect x="430" y="135" width="220" height="90" rx="6" fill="#FFF4C2" stroke="#444" stroke-width="1.5"/>
+    <text x="540" y="160" text-anchor="middle" font-size="14" font-weight="bold">Stage 1: YOLOv11-det</text>
+    <text x="540" y="178" text-anchor="middle" font-size="11" fill="#444">Layout Segmentation</text>
+    <text x="540" y="194" text-anchor="middle" font-size="10" fill="#555">axis-aligned BBox</text>
+    <text x="540" y="218" text-anchor="middle" font-size="9" fill="#888">See stage1_layout.py · §4.1</text>
+  </g>
+
+  <!-- Stage 1 outputs -->
+  <line x1="540" y1="225" x2="540" y2="260" stroke="#333" stroke-width="1.5"/>
+  <line x1="370" y1="260" x2="710" y2="260" stroke="#333" stroke-width="1.5"/>
+
+  <!-- View output -->
+  <line x1="430" y1="260" x2="430" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="370" y="305" width="120" height="40" fill="#E6F0FF" stroke="#333"/>
+    <text x="430" y="322" text-anchor="middle" font-size="12" font-weight="bold">View regions</text>
+    <text x="430" y="338" text-anchor="middle" font-size="9" fill="#555">multi-view crops</text>
+  </g>
+
+  <!-- TitleBlock output -->
+  <line x1="560" y1="260" x2="560" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="510" y="305" width="100" height="40" fill="#E6F0FF" stroke="#333"/>
+    <text x="560" y="322" text-anchor="middle" font-size="12" font-weight="bold">TitleBlock</text>
+    <text x="560" y="338" text-anchor="middle" font-size="9" fill="#555">crop</text>
+  </g>
+
+  <!-- Notes output -->
+  <line x1="680" y1="260" x2="680" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="630" y="305" width="100" height="40" fill="#E6F0FF" stroke="#333"/>
+    <text x="680" y="322" text-anchor="middle" font-size="12" font-weight="bold">Notes</text>
+    <text x="680" y="338" text-anchor="middle" font-size="9" fill="#555">crop</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- STAGE 2: YOLOv11-obb (from View only)                          -->
+  <!-- ============================================================== -->
+  <line x1="430" y1="345" x2="430" y2="385" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="320" y="390" width="220" height="90" rx="6" fill="#FFF4C2" stroke="#444" stroke-width="1.5"/>
+    <text x="430" y="415" text-anchor="middle" font-size="14" font-weight="bold">Stage 2: YOLOv11-obb</text>
+    <text x="430" y="433" text-anchor="middle" font-size="11" fill="#444">Annotation Localization</text>
+    <text x="430" y="449" text-anchor="middle" font-size="10" fill="#555">oriented BBox (OBB)</text>
+    <text x="430" y="473" text-anchor="middle" font-size="9" fill="#888">See stage2_annotation.py · §4.2</text>
+  </g>
+
+  <!-- Stage 2 outputs -->
+  <line x1="430" y1="480" x2="430" y2="510" stroke="#333" stroke-width="1.5"/>
+  <line x1="285" y1="510" x2="575" y2="510" stroke="#333" stroke-width="1.5"/>
+
+  <line x1="290" y1="510" x2="290" y2="545" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="225" y="550" width="130" height="40" fill="#E6F0FF" stroke="#333"/>
+    <text x="290" y="567" text-anchor="middle" font-size="11" font-weight="bold">Measure OBB</text>
+    <text x="290" y="582" text-anchor="middle" font-size="9" fill="#555">dimensions, radii, threads</text>
+  </g>
+
+  <line x1="430" y1="510" x2="430" y2="545" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="375" y="550" width="110" height="40" fill="#E6F0FF" stroke="#333"/>
+    <text x="430" y="567" text-anchor="middle" font-size="11" font-weight="bold">GDT OBB</text>
+    <text x="430" y="582" text-anchor="middle" font-size="9" fill="#555">FCF (whole frame)</text>
+  </g>
+
+  <line x1="570" y1="510" x2="570" y2="545" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="505" y="550" width="130" height="40" fill="#E6F0FF" stroke="#333"/>
+    <text x="570" y="567" text-anchor="middle" font-size="11" font-weight="bold">Roughness OBB</text>
+    <text x="570" y="582" text-anchor="middle" font-size="9" fill="#555">surface symbols</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- DE-ROTATION                                                    -->
+  <!-- ============================================================== -->
+  <line x1="430" y1="590" x2="430" y2="620" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="320" y="625" width="220" height="55" rx="6" fill="#ffffff" stroke="#444" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="430" y="648" text-anchor="middle" font-size="12" font-weight="bold">Perspective-warp de-rotation</text>
+    <text x="430" y="665" text-anchor="middle" font-size="9" fill="#666">cv2.getPerspectiveTransform → upright patch</text>
+    <text x="430" y="676" text-anchor="middle" font-size="8" fill="#888">D-012</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- STAGE 3-N: Donut Numerical (fine-tuned)                        -->
+  <!-- ============================================================== -->
+  <line x1="430" y1="680" x2="430" y2="715" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="290" y="720" width="280" height="90" rx="6" fill="#FFF4C2" stroke="#444" stroke-width="1.5"/>
+    <text x="430" y="745" text-anchor="middle" font-size="14" font-weight="bold">Stage 3-N: Donut Numerical</text>
+    <text x="430" y="763" text-anchor="middle" font-size="11" fill="#444">fine-tuned (epoch 30, AdamW, FP16)</text>
+    <text x="430" y="779" text-anchor="middle" font-size="10" fill="#555">schema-defined JSON output</text>
+    <text x="430" y="803" text-anchor="middle" font-size="9" fill="#888">See stage3_numerical.py · §4.4</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- STAGE 3-A: Donut Alphabetical (zero-shot) — right branch       -->
+  <!-- ============================================================== -->
+  <!-- TitleBlock + Notes feed into Stage 3-A -->
+  <line x1="560" y1="345" x2="560" y2="380" stroke="#333" stroke-width="1.5"/>
+  <line x1="680" y1="345" x2="680" y2="380" stroke="#333" stroke-width="1.5"/>
+  <line x1="560" y1="380" x2="900" y2="380" stroke="#333" stroke-width="1.5"/>
+  <line x1="680" y1="380" x2="900" y2="380" stroke="#333" stroke-width="1.5"/>
+  <line x1="900" y1="380" x2="900" y2="490" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="760" y="495" width="280" height="90" rx="6" fill="#FFF4C2" stroke="#444" stroke-width="1.5"/>
+    <text x="900" y="520" text-anchor="middle" font-size="14" font-weight="bold">Stage 3-A: Donut Alphabetical</text>
+    <text x="900" y="538" text-anchor="middle" font-size="11" fill="#444">zero-shot</text>
+    <text x="900" y="554" text-anchor="middle" font-size="10" fill="#555">free-form JSON output</text>
+    <text x="900" y="578" text-anchor="middle" font-size="9" fill="#888">See stage3_alphabetical.py · §4.3</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- STAGE 4: JSON MERGER                                           -->
+  <!-- ============================================================== -->
+  <!-- Stage 3-N -> Merger -->
+  <line x1="430" y1="810" x2="430" y2="855" stroke="#333" stroke-width="1.5"/>
+  <line x1="430" y1="855" x2="900" y2="855" stroke="#333" stroke-width="1.5"/>
+  <!-- Stage 3-A -> Merger -->
+  <line x1="900" y1="585" x2="900" y2="855" stroke="#333" stroke-width="1.5"/>
+
+  <line x1="900" y1="855" x2="1140" y2="855" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="1140" y="820" width="200" height="70" rx="6" fill="#ffffff" stroke="#444" stroke-width="1.5"/>
+    <text x="1240" y="845" text-anchor="middle" font-size="13" font-weight="bold">Stage 4: JSON Merger</text>
+    <text x="1240" y="862" text-anchor="middle" font-size="10" fill="#555">unify + global coords</text>
+    <text x="1240" y="884" text-anchor="middle" font-size="9" fill="#888">pipeline.py · §5.5</text>
+  </g>
+
+  <line x1="1240" y1="820" x2="1240" y2="780" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="1100" y="710" width="280" height="70" rx="6" fill="#E8F5E9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="1240" y="735" text-anchor="middle" font-size="14" font-weight="bold">Unified Structured JSON</text>
+    <text x="1240" y="753" text-anchor="middle" font-size="10" fill="#555">drawing_id · views[] · annotations[]</text>
+    <text x="1240" y="770" text-anchor="middle" font-size="10" fill="#555">title_block · notes · meta</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- "See Section" callouts on right side                           -->
+  <!-- ============================================================== -->
+  <g font-size="10" fill="#666" font-style="italic">
+    <text x="1380" y="170" text-anchor="end">See Section 4.1 (Stage 1)</text>
+    <text x="1380" y="430" text-anchor="end">See Section 4.2 (Stage 2)</text>
+    <text x="1380" y="650" text-anchor="end">See Section 4.4 / D-012</text>
+    <text x="1380" y="555" text-anchor="end">See Section 4.3 (Stage 3-A)</text>
+    <text x="1380" y="775" text-anchor="end">See Section 4.4 (Stage 3-N)</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- Footer note                                                    -->
+  <!-- ============================================================== -->
+  <text x="700" y="945" text-anchor="middle" font-size="11" fill="#666">
+    eDOCr2 (Pinquie 2025): OpenCV heuristic segmentation + CRAFT/CRNN multi-stage dimensions pipeline
+  </text>
+  <text x="700" y="962" text-anchor="middle" font-size="11" fill="#666">
+    --&gt; absorbed into YOLOv11-det (Stage 1) + YOLOv11-obb (Stage 2) + Donut VLM (Stage 3)   [D-016]
+  </text>
+  <text x="700" y="982" text-anchor="middle" font-size="9" fill="#999">
+    Architecture: Khan et al. 2025  /  Implementation: this project
+  </text>
+</svg>
+g>

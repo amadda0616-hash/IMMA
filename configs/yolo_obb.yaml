@@ -1,0 +1,46 @@
+# ===================================================================
+# Stage 2 — YOLOv11-obb (Annotation Localization)
+# Classes: Measure / GDT / Roughness
+# Format: Ultralytics YOLO OBB dataset YAML
+#   라벨 형식: class x1 y1 x2 y2 x3 y3 x4 y4  (모두 0–1 정규화)
+# ===================================================================
+
+# 환경에 맞게 아래 중 하나로 조정:
+#   WSL2 (Windows mount):  /mnt/c/Users/user/github/Drawing/data/annotation
+#   Linux native:          /home/<user>/Drawing/data/annotation
+#   Windows native:        C:/Users/user/github/Drawing/data/annotation
+path: /mnt/c/Users/user/github/Drawing/data/annotation
+
+train: images/train
+val:   images/val
+# test: images/test
+
+# 클래스 정의 (논문 그대로)
+names:
+  0: Measure
+  1: GDT
+  2: Roughness
+
+# ---- 학습 하이퍼파라미터 (참고용 메모) ----
+# model:    yolo11m-obb.pt
+# imgsz:    1024            # 1280으로 올리면 작은 GD&T 디텍션 향상, VRAM 주의
+# epochs:   150             # OBB는 수렴이 늦어 더 길게
+# batch:    8
+# patience: 40
+# optimizer: auto
+# augment:
+#   hsv_h: 0.015
+#   hsv_s: 0.7
+#   hsv_v: 0.4
+#   degrees: 15.0           # ★ 회전 augmentation ON (회전 텍스트 대응)
+#   translate: 0.1
+#   scale: 0.3
+#   fliplr: 0.0             # 도면은 좌우반전 의미가 달라짐 → OFF
+#   flipud: 0.0
+#   mosaic: 1.0
+#
+# class_balancing:
+#   # Roughness가 극단적으로 적음(논문 152개) → oversampling 또는
+#   # ultralytics의 weighted sampler 사용 검토.
+#   strategy: oversample
+#   target_min_count: 500

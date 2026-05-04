@@ -1,0 +1,122 @@
+{
+  "drawing_id": "SAMPLE-01",
+  "image_path": "data/raw/sample_01_control_box_panel.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "ko",
+  "title_block": {
+    "drawing_no": "EB-CTRL-001",
+    "title": "제어함 전면 패널",
+    "material": "SUS304",
+    "scale": "1:2",
+    "tolerance": "±0.1",
+    "thickness": "1.5t",
+    "revision": "B",
+    "date": "2026-03-12",
+    "drawn_by": "김선영",
+    "checked_by": "박민수",
+    "company": "한솔정밀(주)"
+  },
+  "notes": [
+    "1. 일반공차 KS B 0413 보통급",
+    "2. 모서리 R0.5 모따기, 버 제거",
+    "3. 재질: SUS304 t1.5 No.2D",
+    "4. 절단방식: 파이버 레이저",
+    "5. 표면 보호 비닐 부착 후 출하"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "정면도",
+      "bbox": [320, 480, 3850, 2780],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[420,520],[3700,520],[3700,560],[420,560]], "conf": 0.97, "parsed": {"type": "Measure", "nominal": 480.0, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[200,640],[240,640],[240,2680],[200,2680]], "conf": 0.95, "parsed": {"type": "Measure", "nominal": 320.0, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[1100,1200],[1280,1200],[1280,1240],[1100,1240]], "conf": 0.92, "parsed": {"type": "Measure", "nominal": 6.5, "unit": "mm", "diameter": true, "note": "4-Ø6.5 마운팅 홀"}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:32:11Z",
+    "stats": {
+      "fields_total": 6,
+      "resolved_deterministic": 2,
+      "resolved_heuristic": 1,
+      "resolved_llm": 2,
+      "flagged_hitl": 1
+    },
+    "fields": {
+      "material": {
+        "original": "SUS304",
+        "suggested": "SUS304 No.2D",
+        "alternatives": [
+          {"value": "SUS304 BA",  "weight": 0.30, "note": "외관·반사 중요 시"},
+          {"value": "SUS430 No.2D", "weight": 0.10, "note": "내식 요구 낮을 때 원가절감"}
+        ],
+        "confidence": 0.86,
+        "method": "llm",
+        "source": "gemini-2.0-flash + material_catalog.json#KS_D_3705",
+        "rationale": "박판(1.5t) + 한국 시장 + 일반 외장 판금 → SUS304 2D 마감이 가장 흔함. BA는 광택 외관 시.",
+        "evidence": [{"type": "kb_entry", "ref": "KS_D_3705_SUS304", "rank": 1}],
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "±0.1",
+        "suggested": "KS B 0413 보통급 (= ISO 2768-mK)",
+        "confidence": 0.95,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + ks_b_0413.json",
+        "rationale": "도면 명시 ±0.1 → KS B 0413 보통급(medium) 동등.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": ["fiber_laser_cutting", "press_brake_bending", "deburring"],
+        "confidence": 0.88,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "SUS304 1.5t 박판 + 제어함 패널 → 파이버 레이저 절단 후 프레스 벤딩이 한국 양산 표준. 노트 #4 일치.",
+        "flagged_for_review": false
+      },
+      "surface_finish": {
+        "original": "No.2D (note에서 추론)",
+        "suggested": "No.2D",
+        "alternatives": [{"value": "BA", "weight": 0.20}],
+        "confidence": 0.92,
+        "method": "heuristic",
+        "source": "heuristics.py:detect_finish_keyword",
+        "rationale": "Notes #3 'No.2D' 키워드 직접 검출.",
+        "flagged_for_review": false
+      },
+      "surface_roughness_default": {
+        "original": null,
+        "suggested": "Ra 6.3 μm",
+        "confidence": 0.65,
+        "method": "heuristic",
+        "source": "machining_roughness_table.json",
+        "rationale": "레이저 절단면 표준값. 정확값은 후처리(디버링) 수준에 따라 변동.",
+        "flagged_for_review": true,
+        "hitl_reason": "confidence < 0.70 임계값"
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": ["480 ±0.1", "320 ±0.1", "4-Ø6.5 위치도 ±0.2"],
+        "confidence": 0.80,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "조립 인터페이스 치수 (전체 외형 + 마운팅 홀) 자동 추출.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {
+      "yolo_det": "yolo11m@v1",
+      "yolo_obb": "yolo11m-obb@v1",
+      "donut_alpha": "donut-base-finetuned-docvqa",
+      "donut_num": "donut_numerical@v1",
+      "enrichment_provider": "gemini-2.0-flash"
+    },
+    "timestamp": "2026-04-26T14:32:11Z"
+  }
+}

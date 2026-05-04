@@ -1,0 +1,265 @@
+# ===================================================================
+# Validation Thresholds
+#   src/validate/check_*.py 가 PASS/FAIL/WARN 판정 시 사용하는 기준값.
+#
+# Severity 분류 (D-021):
+#   critical : 미달 시 다음 step 진행 차단
+#   warning  : 경고만 출력, 진행 가능
+#   info     : 통계용, 판정 없음
+# ===================================================================
+
+# --------------------------------------------------------------------
+# Step 1.5 — sort_by_titleblock.py
+# --------------------------------------------------------------------
+step1_5:
+  classifier_accuracy:
+    threshold: 0.85
+    severity: critical
+  per_language_min:
+    threshold: 0.80
+    severity: warning
+  manual_review_rate_max:
+    threshold: 0.20
+    severity: warning
+    note: "manual_review 비율이 너무 높으면 임계값 튜닝 필요"
+
+# --------------------------------------------------------------------
+# Step 2 — Stage 1 라벨링 검증
+# --------------------------------------------------------------------
+stage1_labels:
+  empty_label_rate_max:
+    threshold: 0.05
+    severity: critical
+  bbox_validity_rate:
+    threshold: 1.0          # 100%
+    severity: critical
+  class_distribution:
+    # Stage 1 = 5 classes (D-028). 내부 이름 기준 (D-029: Table→TitleBlock, Text→Notes).
+    # min_ratio = 전체 라벨 중 해당 클래스 최소 비율
+    # 임계값은 100장 seed 실측 분포 기반 (D-031, 2026-04-28).
+    # 실측: PMI 80.6% / View 9.65% / Table 7.05% / Notes 1.89% / Iso 0.82%
+    PMI_min_ratio:        0.50   # ★ 도미넌트 — 가공정보 영역 (실측 80.6%)
+    View_min_ratio:       0.05   # 도면당 평균 4.3 뷰 (실측 9.65%)
+    TitleBlock_min_ratio: 0.04   # = Roboflow `Table` 통합 (TB+BOM+Rev, 실측 7.05%)
+    Notes_min_ratio:      0.01   # 도면당 평균 0.84 (실측 1.89%)
+    Isometric_min_ratio:  0.005  # 도면당 평균 0.36 (실측 0.82%)
+    severity: warning
+  inter_annotator_iou:
+    threshold: 0.80
+    severity: warning
+  small_bbox_rate_max:
+    threshold: 0.05
+    severity: warning
+    note: "면적 < 100px² BBox 비율"
+
+# --------------------------------------------------------------------
+# Step 2 — Stage 1 학습 모델
+# --------------------------------------------------------------------
+stage1_model:
+  # Stage 1 = 5 classes (D-028). 내부 이름 기준 (D-029).
+  per_class_accuracy:
+    View:
+      threshold: 0.90
+      severity: critical
+    PMI:                   # NEW (D-028)
+      threshold: 0.85
+      severity: critical
+      note: "Stage 2 OBB 의 입력 영역 — 회수율 중요"
+    TitleBlock:            # = Roboflow `Table` (D-029)
+      threshold: 0.95
+      severity: critical
+    Notes:                 # = Roboflow `Text` (D-029)
+      threshold: 0.90
+      severity: critical
+    Isometric:             # NEW (D-028)
+      threshold: 0.80
+      severity: warning
+      note: "도면당 0~1개 — 데이터 적어 하향 조정"
+  map_at_50:
+    threshold: 0.85
+    severity: critical
+  false_positive_rate_max:
+    threshold: 0.10
+    severity: warning
+    note: "TB 없는 도면에서 TB 검출 비율"
+
+# --------------------------------------------------------------------
+# Step 2 — Stage 1 crop 결과
+# --------------------------------------------------------------------
+stage1_crops:
+  empty_crop_count_max:
+    threshold: 0
+    severity: critical
+  view_missing_rate_max:
+    threshold: 0.03
+    severity: critical
+  aspect_ratio_inrange_min:
+    threshold: 0.90
+    severity: warning
+    range: [0.5, 3.0]
+
+# --------------------------------------------------------------------
+# Step 3 — Stage 2 라벨링 검증
+# --------------------------------------------------------------------
+stage2_labels:
+  obb_validity_rate:
+    threshold: 1.0
+    severity: critical
+  class_distribution:
+    Roughness_min_count: 50
+    severity: warning
+    note: "논문 152개. 50개 이하면 D-017 synthetic_gen 검토"
+  angle_diversity:
+    non_axis_aligned_min: 0.20
+    severity: warning
+    note: "0°/90° 이외 각도 비율"
+  inter_annotator_iou:
+    threshold: 0.75
+    severity: warning
+
+# --------------------------------------------------------------------
+# Step 3 — Stage 2 모델 + ★ 누락률 (사용자 핵심 요구)
+# --------------------------------------------------------------------
+stage2_model:
+  per_class_accuracy:
+    Measure:
+      threshold: 0.92
+      severity: critical
+    GDT:
+      threshold: 0.95
+      severity: critical
+    Roughness:
+      threshold: 0.50
+      severity: warning      # 논문 0.54
+  map_at_50:
+    threshold: 0.80
+    severity: critical
+  missing_rate_max:          # ★ 사용자 필수 요구
+    Measure:
+      threshold: 0.08
+      severity: critical
+    GDT:
+      threshold: 0.05
+      severity: critical
+    Roughness:
+      threshold: 0.30
+      severity: warning
+  drawing_recall_min:        # ★ 도면 단위 회수율
+    threshold: 0.85
+    severity: critical
+  class_confusion_max:
+    threshold: 0.05
+    severity: warning
+
+# --------------------------------------------------------------------
+# Step 3 — Stage 2 perspective-warp crop
+# --------------------------------------------------------------------
+stage2_warps:
+  empty_warp_count_max:
+    threshold: 0
+    severity: critical
+  ocr_confidence_min:
+    threshold: 60
+    severity: warning
+    note: "Tesseract 평균 confidence (텍스트 패치만)"
+  aspect_ratio_inrange_min:
+    threshold: 0.95
+    severity: warning
+    range: [0.3, 10.0]
+
+# --------------------------------------------------------------------
+# Step 5 — Stage 3-A (Donut Alphabetical zero-shot)
+# --------------------------------------------------------------------
+stage3a:
+  field_f1_min:
+    overall:
+      threshold: 0.50         # 논문 0.533 (TitleBlock)
+      severity: warning
+    titleblock:
+      threshold: 0.50
+      severity: warning
+    notes:
+      threshold: 0.75         # 논문 0.810
+      severity: critical
+  hallucination_rate_max:
+    threshold: 0.50           # 논문 TB 0.478
+    severity: warning
+  empty_response_rate_max:
+    threshold: 0.10
+    severity: warning
+  per_language_f1_gap_max:
+    threshold: 0.30
+    severity: info
+    note: "EN 최고 vs 비-EN 최저 차이"
+  edit_distance_avg_max:
+    threshold: 5
+    severity: info
+
+# --------------------------------------------------------------------
+# Step 6 — Stage 3-N (Donut Numerical fine-tuned)
+# --------------------------------------------------------------------
+stage3n:
+  field_f1_min:
+    Measure:
+      threshold: 0.90         # 논문 0.923
+      severity: critical
+    GDT:
+      threshold: 0.95         # 논문 0.965
+      severity: critical
+    Roughness:
+      threshold: 0.95         # 논문 1.0
+      severity: warning
+  numerical_accuracy_min:
+    threshold: 0.95
+    severity: critical
+    note: "nominal value 오차 ≤ 0.01 비율"
+  tolerance_match_min:
+    threshold: 0.90
+    severity: critical
+  rare_symbol_accuracy_min:
+    threshold: 0.70
+    severity: warning
+    note: "사용 빈도 낮은 GDT 심볼"
+  hallucination_rate_max:
+    threshold: 0.10
+    severity: critical
+
+# --------------------------------------------------------------------
+# Step 7 — end-to-end pipeline
+# --------------------------------------------------------------------
+pipeline_e2e:
+  field_f1_min:
+    threshold: 0.75
+    severity: critical
+  inference_time_per_drawing_max_s:
+    threshold: 30
+    severity: warning
+  failure_rate_max:
+    threshold: 0.01
+    severity: critical
+  gpu_memory_peak_max_gb:
+    threshold: 14
+    severity: warning
+    note: "RTX 5080 16GB 안전 영역"
+
+# --------------------------------------------------------------------
+# Step 9 — Metadata Enrichment
+# --------------------------------------------------------------------
+enrichment:
+  llm_method_rate_max:
+    threshold: 0.40
+    severity: warning
+    note: "비용 통제 — LLM 호출 비율"
+  hitl_flag_rate_max:
+    threshold: 0.25
+    severity: warning
+  material_recommendation_accuracy_min:
+    threshold: 0.70
+    severity: warning
+    note: "도메인 전문가 검수 30건 기준"
+  provenance_completeness:
+    threshold: 1.0
+    severity: critical
+  cost_per_drawing_max_usd:
+    threshold: 0.005
+    severity: warning

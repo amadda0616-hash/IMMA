@@ -1,0 +1,42 @@
+# ===================================================================
+# Stage 1 — YOLOv11-det (Layout Segmentation)
+# Classes: Isometric / PMI / Table / Text / View  (5 classes, D-028)
+# Source: IMMA.v1i.yolov11/data.yaml (Roboflow export, jihyunghans-workspace)
+# Format: Ultralytics YOLO det dataset YAML
+# ===================================================================
+#
+# Mapping to internal canonical names (D-029, applied in src/stage1_layout.py):
+#   Roboflow         Internal
+#   ─────────        ────────
+#   Isometric   →    Isometric    (NEW)
+#   PMI         →    PMI          (NEW, Stage 2 OBB target)
+#   Table       →    TitleBlock   (semantic preservation)
+#   Text        →    Notes        (semantic preservation)
+#   View        →    View
+#
+# Dataset root (절대 경로 권장. 상대 경로일 경우 ultralytics가 settings.yaml의
+# 'datasets_dir' 기준으로 해석함)
+#   WSL2 (Windows mount):  /mnt/c/Users/user/github/Drawing/IMMA.v1i.yolov11
+#   Windows native:        C:/Users/user/github/Drawing/IMMA.v1i.yolov11
+# 폴더 구조 (Roboflow v1 export, 80/20 split):
+#   IMMA.v1i.yolov11/
+#     ├── train/{images,labels}/   ← 80장
+#     ├── valid/{images,labels}/   ← 20장
+#     └── data.yaml                ← Roboflow 원본 (참고용)
+path: /mnt/c/Users/user/github/Drawing/IMMA.v1i.yolov11
+
+train: train/images
+val:   valid/images
+# test: test/images       # 80/20/0 split — 미생성
+
+nc: 5
+names:
+  0: Isometric
+  1: PMI
+  2: Table
+  3: Text
+  4: View
+
+# 학습 하이퍼파라미터 참고용 메모 (실제 학습은 src/stage1_layout.py 에서 적용)
+# model: yolo11m.pt / imgsz: 1280 / epochs: 100 / batch: 8 / patience: 30
+# augment: hsv ON / scale ON / translate ON / fliplr OFF / flipud OFF / mosaic ON / mixup OFF

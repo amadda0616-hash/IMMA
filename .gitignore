@@ -1,0 +1,109 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- ML model weights (★ 2026-05-04 추가) ---
+# Pretrained YOLO weights downloaded by ultralytics at root (예: yolo11x-obb.pt)
+# 또는 어디든 .pt/.pth 파일 — GitHub 100MB 제한 위반 방지
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+
+# --- 저작권 보호 자료 (★ 절대 commit 금지, 2026-05-04) ---
+# 원본 도면 dataset (저작권 보호) — 팀 Google Drive 에서만 공유
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.tif
+*.gif
+# 단, docs / src / 워크플로 다이어그램은 허용 (whitelist 아래)
+!docs/**/*.png
+!docs/**/*.jpg
+!workflow_*.png
+!workflow_*.svg
+
+# --- 사용자 보고서 / 임시 docx ---
+*.docx
+*.xlsx
+*.pdf
+# 단, README.docx / report 폴더 안 일부는 보존 가능 (필요시 whitelist)
+
+# --- Project artifacts ---
+checkpoints/**
+!checkpoints/.gitkeep
+outputs/**
+!outputs/.gitkeep
+# ★ 박제 파일은 commit (Phase 14 산출물 — D-040)
+!outputs/v3b_summary.txt
+!outputs/v3b_ensemble_eval.json
+!outputs/kfold_summary.json
+!outputs/kfold_summary.csv
+!outputs/kfold_best_fold.txt
+!outputs/kfold_train_log.txt
+
+# --- Heavy raw data (★ 2026-05-04 추가 — D-040 commit 시 보강) ---
+# 원본 도면 dataset (1.1 GB, 5,839 장)
+dataset/**
+!dataset/.gitkeep
+dataset_excluded/**
+!dataset_excluded/.gitkeep
+
+# Roboflow Stage 1 seed export (~13 MB images, 외부 데이터)
+IMMA.v1i.yolov11/
+
+# 참조 논문/문서 (~231 MB PDFs)
+articles/
+
+# Stage 2 annotation 전체 (★ 2026-05-04 보강 — dataset 과 일관 차단)
+# 라벨 파일명에 원본 도면 ID 노출 → 저작권 정보 누출 위험
+# (라벨 파일명 예: CAD_Drawing385_jpg.rf.<hash>__PMI_005.txt)
+# Google Drive 의 dataset 과 함께 외부 자산으로 관리
+data/annotation/**
+!data/annotation/.gitkeep
+
+# K-fold dataset (txt 파일이 절대 WSL 경로 사용 — portable X)
+data/annotation_kfold/
+
+# zenodo crawler outputs (논문 PDFs)
+zenodo_crawler/downloads/
+zenodo_crawler/output/
+
+# --- Data (대용량) ---
+data/raw/**
+!data/raw/.gitkeep
+data/layout/images/**
+!data/layout/images/**/.gitkeep
+data/annotation/images/**
+!data/annotation/images/**/.gitkeep
+data/vlm/**
+!data/vlm/**/.gitkeep
+
+# --- Logs ---
+*.log
+wandb/
+runs/
+lightning_logs/
+
+# --- Validation reports (HTML + JSON outputs, regenerable) ---
+reports/**
+!reports/.gitkeep
+
+# --- Notebook ---
+.ipynb_checkpoints/

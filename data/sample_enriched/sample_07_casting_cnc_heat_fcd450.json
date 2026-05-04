@@ -1,0 +1,135 @@
+{
+  "drawing_id": "SAMPLE-07",
+  "image_path": "data/raw/sample_07_pump_housing.jpg",
+  "image_size": [4961, 3508],
+  "language_hint": "en",
+  "title_block": {
+    "drawing_no": "PMP-HSG-3308",
+    "title": "CENTRIFUGAL PUMP HOUSING",
+    "material": "FCD450",
+    "scale": "1:2",
+    "tolerance": "ISO 2768-mK / DCTG 8 (cast)",
+    "revision": "B",
+    "date": "2026-02-19",
+    "drawn_by": "L.WANG",
+    "checked_by": "R.SCHMIDT",
+    "company": "FluidTech Engineering GmbH",
+    "weight": "12.6 kg"
+  },
+  "notes": [
+    "1. MATERIAL: DUCTILE CAST IRON FCD450 (JIS G 5502) / GGG-50 (DIN EN-GJS-450-10)",
+    "2. CASTING: SAND CAST, DCTG 8 PER ISO 8062",
+    "3. STRESS RELIEF ANNEAL 580 ±20°C / 2H",
+    "4. MACHINED SURFACES PER NOTE, OTHERS AS-CAST",
+    "5. HYDROSTATIC TEST 1.5x WORKING PRESSURE FOR 30 MIN",
+    "6. EPOXY PRIMER + ALKYD TOPCOAT (RAL 5010 BLUE)"
+  ],
+  "views": [
+    {
+      "view_id": "view_0",
+      "label": "FRONT SECTION",
+      "bbox": [400, 500, 3200, 2400],
+      "annotations": [
+        {"class": "Measure", "obb_global": [[450,540],[3100,540],[3100,580],[450,580]], "conf": 0.95, "parsed": {"type": "Measure", "nominal": 280.0, "tolerance": {"upper": 0.5, "lower": -0.5}, "unit": "mm"}},
+        {"class": "Measure", "obb_global": [[1200,1400],[1320,1400],[1320,1450],[1200,1450]], "conf": 0.93, "parsed": {"type": "Measure", "nominal": 80.0, "diameter": true, "tolerance_class": "H7", "unit": "mm", "note": "impeller bore"}},
+        {"class": "Measure", "obb_global": [[2400,1100],[2540,1100],[2540,1150],[2400,1150]], "conf": 0.90, "parsed": {"type": "Measure", "thread": "G3/4", "unit": "BSPP", "note": "drain port"}},
+        {"class": "GDT", "obb_global": [[1100,1700],[1500,1700],[1500,1760],[1100,1760]], "conf": 0.92, "parsed": {"type": "GDT", "symbol": "⌭", "tolerance": 0.05, "datum": ["A"]}},
+        {"class": "Roughness", "obb_global": [[1280,1370],[1400,1370],[1400,1420],[1280,1420]], "conf": 0.85, "parsed": {"type": "Roughness", "Ra": 1.6, "unit": "μm"}}
+      ]
+    }
+  ],
+  "enrichment": {
+    "version": "1.0",
+    "timestamp": "2026-04-26T14:41:00Z",
+    "stats": {"fields_total": 7, "resolved_deterministic": 4, "resolved_heuristic": 1, "resolved_llm": 2, "flagged_hitl": 0},
+    "fields": {
+      "material": {
+        "original": "FCD450",
+        "suggested": "FCD450 (JIS G 5502) / EN-GJS-450-10 (EN 1563) / 65-45-12 (ASTM A536)",
+        "alternatives": [
+          {"value": "FCD500", "weight": 0.20, "note": "higher strength variant"},
+          {"value": "FC250 grey iron", "weight": 0.10, "note": "cost-down, brittle"}
+        ],
+        "confidence": 0.97,
+        "method": "deterministic",
+        "source": "material_catalog.json#JIS_G_5502 + cross_standard_map.json",
+        "rationale": "Notes #1 multi-standard 명시. 펌프 하우징의 글로벌 표준 재질.",
+        "flagged_for_review": false
+      },
+      "tolerance_general": {
+        "original": "ISO 2768-mK / DCTG 8 cast",
+        "suggested": {"machined": "ISO 2768-mK", "as_cast": "ISO 8062 DCTG 8 (general dimensional)"},
+        "confidence": 0.96,
+        "method": "deterministic",
+        "source": "iso_2768_defaults.json + iso_8062_dctg.json",
+        "rationale": "주조면과 가공면 분리 적용 표준.",
+        "flagged_for_review": false
+      },
+      "manufacturing_process": {
+        "original": null,
+        "suggested": [
+          "sand_casting_DCTG_8",
+          "stress_relief_anneal_580C_2h",
+          "cnc_milling_mating_faces",
+          "cnc_boring_impeller_bore_H7",
+          "cnc_threading_G3_4_BSPP",
+          "hydrostatic_pressure_test_1.5x",
+          "epoxy_primer + alkyd_topcoat_RAL5010"
+        ],
+        "confidence": 0.94,
+        "method": "llm",
+        "source": "gemini-2.0-flash + process_combination_catalog.json",
+        "rationale": "FCD450 + 펌프 하우징 + 노트 #2-6 → 표준 주조 후 CNC + 압력시험 시퀀스.",
+        "flagged_for_review": false
+      },
+      "thread_specs_normalized": {
+        "original": "G3/4",
+        "suggested": {"designation": "G 3/4", "type": "BSPP (parallel pipe thread)", "standard": "ISO 228-1", "sealing": "elastomer/PTFE seal required"},
+        "confidence": 0.94,
+        "method": "deterministic",
+        "source": "thread_standards.json#ISO_228",
+        "rationale": "G prefix → BSPP parallel pipe thread.",
+        "flagged_for_review": false
+      },
+      "pressure_test_specification": {
+        "original": "Hydrostatic test 1.5x working pressure for 30 min",
+        "suggested": {"test_type": "hydrostatic", "factor": 1.5, "duration_min": 30, "criteria": "no leak, no permanent deformation", "standard": "API 610 / ISO 5198"},
+        "confidence": 0.91,
+        "method": "llm",
+        "source": "gemini-2.0-flash + pump_test_standards.json",
+        "rationale": "원심 펌프 hydrotest API 610 표준 패턴.",
+        "flagged_for_review": false
+      },
+      "surface_roughness_default": {
+        "original": "Ra 1.6 (machined), as-cast (others)",
+        "suggested": {"machined": "Ra 1.6 μm", "as_cast": "Ra 12.5-25 μm typical"},
+        "confidence": 0.93,
+        "method": "heuristic",
+        "source": "machining_roughness_table.json + casting_finish_table.json",
+        "rationale": "노트 #4 + 주조면 표준 거칠기.",
+        "flagged_for_review": false
+      },
+      "qc_checklist": {
+        "original": null,
+        "suggested": [
+          "OD 280 ±0.5",
+          "Ø80 H7 impeller bore (precision gauge)",
+          "G3/4 BSPP plug-gauge",
+          "Concentricity ⌭0.05 to A",
+          "Hydrotest 1.5x P_work / 30 min",
+          "Stress-relief hardness 160-200 HB",
+          "Coating thickness 80-120 μm total"
+        ],
+        "confidence": 0.88,
+        "method": "llm",
+        "source": "gemini-2.0-flash",
+        "rationale": "펌프 하우징 critical features + leak test.",
+        "flagged_for_review": false
+      }
+    }
+  },
+  "meta": {
+    "model_versions": {"yolo_det": "yolo11m@v1", "yolo_obb": "yolo11m-obb@v1", "donut_alpha": "donut-base-finetuned-docvqa", "donut_num": "donut_numerical@v1", "enrichment_provider": "gemini-2.0-flash"},
+    "timestamp": "2026-04-26T14:41:00Z"
+  }
+}

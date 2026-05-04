@@ -1,0 +1,123 @@
+# =====================================================================
+#  Multi-Stage Hybrid Framework for Engineering Drawings
+#  Target environment:
+#    - Ubuntu 22.04 LTS on WSL2 (Windows 11 host)
+#    - IDE: Antigravity (VS Code-based, WSL Remote)
+#    - GPU: NVIDIA RTX 5080 (Blackwell, sm_120, 16GB VRAM)
+#    - CUDA: 12.8+ (★ Blackwell 지원, D-030 — cu124 빌드는 비호환)
+#    - Python: 3.10+
+# =====================================================================
+#
+# 설치 순서 (README.md 참조):
+#   1) 시스템 패키지 (apt) — tesseract, libGL, etc.
+#   2) PyTorch CUDA 빌드 — 별도 install (이 파일에는 미포함)
+#         uv pip install torch torchvision \
+#             --index-url https://download.pytorch.org/whl/cu128
+#         # ★ RTX 50 시리즈 (Blackwell, sm_120) 는 cu128 빌드 필수
+#         # ★ cu124 빌드는 sm_90 (Hopper) 까지만 지원 → RTX 5080 비호환
+#         # 검증: python -c "import torch; print(torch.cuda.get_device_capability())"
+#         #       → (12, 0) 출력되면 정상
+#   3) uv pip install -r requirements.txt
+#
+# Windows 직접 사용 시:
+#   - Tesseract: UB Mannheim 빌드 사용
+#   - PyTorch: 위와 동일 cu128 휠
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Used by sort_by_titleblock.py
+# ---------------------------------------------------------------------
+pytesseract>=0.3.10
+Pillow>=10.3.0
+opencv-python>=4.10.0
+numpy>=1.26.0,<2.0.0     # ultralytics/transformers 호환 안정 영역
+
+# ---------------------------------------------------------------------
+# Used by stage1_layout.py / stage2_annotation.py (and future Stage 3)
+# Note: torch / torchvision are installed separately via the cu128 index (D-030).
+# ---------------------------------------------------------------------
+ultralytics>=8.3.0       # YOLOv11-det / YOLOv11-obb
+accelerate>=0.34.0
+
+# ---------------------------------------------------------------------
+# Stage 3 (Donut VLM) — install when reaching Day 2/3
+# ---------------------------------------------------------------------
+# 또한 D-038 (Stage 1 false positive Notes Rescue) 도구 사용 시 필수:
+#   - src/rescue_misclassified_notes.py 가 Donut zero-shot 사용
+#   - 미설치 시 ImportError: No module named 'transformers' 발생
+#
+# 최소 설치 (Rescue 만):
+#   pip install "transformers>=4.44.0" "sentencepiece>=0.2.0" "timm>=1.0.0" "protobuf>=4.25.0"
+#
+# 전체 Stage 3 의존성 (fine-tune 포함):
+#   pip install -r requirements.txt
+transformers>=4.44.0
+sentencepiece>=0.2.0
+timm>=1.0.0
+protobuf>=4.25.0
+datasets>=2.20.0
+pytorch-lightning>=2.3.0
+
+# ---------------------------------------------------------------------
+# General data utils
+# ---------------------------------------------------------------------
+pandas>=2.2.0
+pyyaml>=6.0
+tqdm>=4.66.0
+jsonschema>=4.22.0
+scipy>=1.11.0
+
+# ---------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------
+scikit-learn>=1.5.0
+editdistance>=0.8.1
+# nltk>=3.9              # ROUGE/BLEU (현재 미사용, 향후 utils/metrics.py 확장 시 활성)
+
+# ---------------------------------------------------------------------
+# Logging / dev (optional)
+# ---------------------------------------------------------------------
+wandb>=0.17.0
+tensorboard>=2.17.0
+matplotlib>=3.9.0
+ipykernel>=6.29.0
+
+# ---------------------------------------------------------------------
+# Validation framework (src/validate/) — Step별 자동 검증 + HTML 리포트
+# ---------------------------------------------------------------------
+jinja2>=3.1.0           # HTML 리포트 템플릿
+seaborn>=0.13.0         # 검증 차트 (옵션, matplotlib 보조)
+shapely>=2.0.0          # check_stage2_model.py — OBB polygon IoU
+                        # 미설치 시 axis-aligned bbox IoU 로 fallback
+
+# ---------------------------------------------------------------------
+# Step 9 — Metadata Enrichment LLM providers (옵션, 실제 호출 시)
+#   Mock provider 만 사용하면 아래 모두 미설치로 동작 가능 (D-019/D-020).
+#   실제 LLM 호출 시 해당 provider 패키지 1개 이상 필요.
+# ---------------------------------------------------------------------
+google-generativeai>=0.7.0   # GeminiProvider (`--provider gemini`)
+                             # API 키: GEMINI_API_KEY 환경변수
+# bitsandbytes>=0.43.0       # Donut/Qwen 4-bit 양자화 (16GB VRAM 한계 시)
+                             # WSL2 + CUDA 12.8 호환 빌드 필요 (D-030)
+
+# ---------------------------------------------------------------------
+# Active Learning — Roboflow API SDK (옵션)
+#   Roboflow 웹 UI 만 사용 시 불필요. auto-label 결과 자동 업로드 시 활성.
+# ---------------------------------------------------------------------
+# roboflow>=1.1.0            # Roboflow Python SDK (Step 6 auto-label)
+
+# ---------------------------------------------------------------------
+# FlashAttention-2 (옵션, Step 6 Donut fine-tune 시 학습 속도 ↑)
+#   영향:
+#     - Stage 1 / 2 (YOLO) : 무영향 (CNN backbone)
+#     - Stage 3-A (zero-shot) : ~10% 속도 ↑ (추론만)
+#     - Stage 3-N (Donut fine-tune) : ★ 2~3× 학습 속도 ↑
+#   현재 단계에서는 미설치 권장 (학습 시간 4~6h 부담될 때 검토).
+#   설치 (cu128 호환 wheel 사용):
+#     uv pip install flash-attn --no-build-isolation
+#   설치 실패 시 (소스 빌드 필요):
+#     - apt install ninja-build
+#     - export CUDA_HOME=/usr/local/cuda-12.8
+#     - uv pip install flash-attn --no-build-isolation
+# ---------------------------------------------------------------------
+# flash-attn>=2.7.0          # FlashAttention-2 (Donut fine-tune 가속)

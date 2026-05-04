@@ -1,0 +1,65 @@
+# ===================================================================
+# Stage 3-N — Donut Numerical VLM Fine-tuning
+# 논문 하이퍼파라미터 그대로 + RTX 5080(16GB) 대응 옵션
+# ===================================================================
+
+# ---- 모델 ----
+model:
+  pretrained: naver-clova-ix/donut-base
+  # 새 special tokens (Numerical 스키마용)
+  task_start_tokens:
+    - <s_measure>
+    - <s_gdt>
+    - <s_roughness>
+  # Donut 입력 해상도 (height, width). 도면 패치는 가로가 더 긴 경우가 많음.
+  input_size: [960, 1280]
+  max_length: 768           # JSON 토큰 길이 충분히 확보
+
+# ---- 데이터 ----
+data:
+  root: /mnt/c/Users/user/github/Drawing/data/vlm/numerical
+  # 폴더 구조 가정:
+  #   numerical/
+  #     <id>.jpg
+  #     <id>.json    # ground-truth JSON (스키마 §5.4 참조)
+  split:
+    train: 0.70
+    val:   0.20
+    test:  0.10
+  num_workers: 8
+  shuffle_seed: 42
+
+# ---- 학습 (논문 재현) ----
+train:
+  epochs: 30
+  batch_size: 4              # 논문 그대로
+  optimizer: adamw
+  learning_rate: 1.0e-6      # 논문: 1e-6
+  weight_decay: 0.01
+  scheduler: cosine          # cosine decay
+  warmup_steps: 0            # 논문: no warm-up
+  precision: fp16            # mixed precision
+  gradient_checkpointing: true   # ★ RTX 5080 16GB 대응
+  gradient_accumulation_steps: 1
+  grad_clip: 1.0
+  log_every_n_steps: 20
+  val_check_interval: 1.0    # epoch 단위 val
+  save_top_k: 3
+  monitor: val/edit_distance
+  monitor_mode: min
+
+# ---- 출력 ----
+output:
+  ckpt_dir: /mnt/c/Users/user/github/Drawing/checkpoints/donut_numerical
+  log_dir:  /mnt/c/Users/user/github/Drawing/checkpoints/donut_numerical/logs
+
+# ---- 평가 ----
+eval:
+  metrics: [precision, recall, f1, hallucination_rate, edit_distance]
+  per_class: [Measure, GDT, Roughness]
+
+# ---- 추론 ----
+inference:
+  num_beams: 1
+  do_sample: false
+  early_stopping: true
