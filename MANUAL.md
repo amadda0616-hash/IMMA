@@ -15,7 +15,7 @@
 | CUDA | 12.4+ (WSL2 자동 인식) |
 | Python | 3.10+ |
 | 데이터셋 | `dataset/` 폴더에 **5,839 JPG** 적재 완료 (Roboflow export 형식) |
-| 도면 언어 | **EN / KO / JP / RU / CN** (도면 1장 = 단일 언어 가정, D-025) |
+| 도면 언어 | **EN / KO / JP / RU / CN / DE** (도면 1장 = 단일 언어 가정, D-025 — DE 2026-05-04 추가) |
 | 도면 종류 | **가공도면 + 조립도면** 혼재 — Stage 2 학습은 가공도면만 (D-026) |
 | TB 분포 | **약 95% 도면에 TB 존재**. material/quantity 핵심 필드는 자주 누락 (D-027) |
 | IDE | Antigravity (VS Code 기반, WSL Remote) 권장 |
@@ -1062,12 +1062,59 @@ python src/stage2_annotation.py crop \
 
 ---
 
-## 6. Stage 3-A — PaddleOCR-VL-1.5 (★ D-039, 2026-05-03 갱신)
+## 6. Stage 3-A — PaddleOCR-VL-1.5 (★ D-039, 2026-05-03 갱신 + ★ D-042 환경 검증 2026-05-04)
 
 > **D-039**: Stage 3-A → **PaddleOCR-VL-1.5** 채택 (D-018 Donut DocVQA 폐기).
+> **D-042**: 환경 설치 시 `config.text_config = config.get_text_config()` monkey-patch 필수.
 >
 > **변경 이유**: D-038 1차 Rescue (Donut DocVQA zero-shot) 다국어 도면에서 4% 성공 (실질 실패).
 > 다국어 SOTA 모델 검색 결과 PaddleOCR-VL-1.5 채택 (8가지 사유, history.md §A.11.9 참조).
+>
+> **★ Phase 15a (2026-05-04) 환경 검증 PASS**: 0.91B params / 39.7s load / 2.26~3.47s inference / 3.29 GB VRAM.
+
+### 6.0 ★ Phase 15a 환경 설치 (★ 별도 venv 분리)
+
+Phase 14 의 ultralytics venv (`.venv`) 와 분리하여 의존성 충돌 회피:
+
+```bash
+cd /mnt/c/Users/user/github/Drawing
+
+# 별도 venv 생성
+uv venv --python 3.10 .venv-paddleocr
+source .venv-paddleocr/bin/activate
+
+# 의존성 (★ transformers 5.0.0 — 5.6+ 는 ROPE 호환성 이슈)
+uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+uv pip install "transformers==5.0.0" accelerate sentencepiece protobuf einops pillow
+
+# 환경 자동 검증 (★ monkey-patch 자동 적용)
+python src/stage3_paddleocr_install_check.py
+# 종료 코드: PASS = 0, FAIL = 1
+```
+
+### 6.0.1 ★ D-042 monkey-patch (★ 모든 후속 코드에 필수 적용)
+
+```python
+from transformers import AutoConfig, AutoProcessor, AutoModelForImageTextToText
+import torch
+
+mid = 'PaddlePaddle/PaddleOCR-VL-1.5'
+
+# 1. Config 로드
+config = AutoConfig.from_pretrained(mid, trust_remote_code=True)
+
+# 2. ★ Critical workaround (D-042)
+if not hasattr(config, "text_config") and hasattr(config, "get_text_config"):
+    config.text_config = config.get_text_config()
+
+# 3. Processor + Model 로드
+processor = AutoProcessor.from_pretrained(mid, trust_remote_code=True)
+model = AutoModelForImageTextToText.from_pretrained(
+    mid, config=config, trust_remote_code=True, dtype=torch.float16,
+).to('cuda:0')
+```
+
+이 패턴을 `stage3_alphabetical.py`, `pipeline.py` 등 모든 모델 로드 코드에 적용해야 함.
 
 ### 모델 정보
 
@@ -1192,6 +1239,108 @@ python src/stage3_alphabetical.py batch \
 - Hallucination: 0.40 ~ 0.48
 
 낮은 정확도는 **Step 9 (Metadata Enrichment)** 에서 LLM 으로 보정 예정.
+
+---
+
+## 6.5 Stage 3-N — Donut Numerical Fine-tune (★ Phase 16a/b, 2026-05-06 갱신)
+
+> **D-049/D-050/D-051 박제** — Phase 16a/b 진행 시 핵심 의사결정 + 한계 검증.
+> 상세: `history.md §A.12.10` + `docs/KNOWN_LIMITATIONS.md §4`.
+
+### 6.5.1 ★ Phase 16a — VLM pair 학습 데이터 자동 생성
+
+**venv 전환** (Phase 14 ultralytics 환경 사용):
+```bash
+deactivate
+source .venv/bin/activate
+```
+
+**실행 명령** (★ 인자명 정정 — 가이드 작성 시 인자명 확인 누락 발견):
+```bash
+python src/prepare_vlm_dataset.py numerical \
+    --dataset dataset/ \
+    --det-weights checkpoints/yolo_det.pt \
+    --obb-weights checkpoints/yolo_obb.pt \
+    --device 0 \
+    --ocr-prefill \
+    --limit 500
+```
+
+| 잘못된 인자 (이전 가이드) | 실제 인자 |
+|---|---|
+| `--input dataset/` | `--dataset dataset/` |
+| `--stage1-weights ...` | `--det-weights ...` |
+| `--stage2-ensemble checkpoints/yolo_obb_runs/` | `--obb-weights checkpoints/yolo_obb.pt` (★ 단일 파일) |
+| `--output data/vlm/numerical/` | (없음 — 코드 내 고정 경로) |
+
+**참고**: K-fold ensemble (5 fold) 은 prepare_vlm_dataset 미지원 → Phase 17 e2e 에서 ensemble_predict.py 적용.
+
+**Phase 16a 실측 결과** (2026-05-06, 500 도면):
+- 처리 시간: 24분 04초
+- 산출 region: **11,470** (도면당 평균 22.94)
+- 클래스 분포: Measure 8,750 (76.3%) / GDT 531 (4.6%) / Roughness 2,189 (19.1%)
+- manifest.csv 정상 작성 (group_key 포함, D-024)
+
+**★ D-049 sys.path bootstrap** (Task #92 패턴 적용):
+- `prepare_vlm_dataset.py` 가 `from src.stage1_layout import ...` 사용
+- 직접 실행 시 `ModuleNotFoundError: No module named 'src'` → bootstrap 으로 해결
+- ★ 절대 금지: `pip install src` / `uv pip install src` (PyPI 무관 패키지)
+
+### 6.5.2 ★ Auto-fill Numerical GT (★ 신규 D-050/D-051 검증)
+
+Phase 16a 가 생성한 JSON 의 GT field 는 모두 `null` (검수 시드 상태). 1차 baseline 학습을 위해 OCR hint regex 매핑으로 자동 채움:
+
+```bash
+python src/auto_fill_numerical_gt.py \
+    --report outputs/auto_fill_numerical_report.md
+cat outputs/auto_fill_numerical_report.md
+```
+
+**Auto-fill 결과** (실측, Phase 16a 직후):
+| 클래스 | Total | Filled | Rate | 평가 |
+|---|---|---|---|---|
+| Measure | 8,750 | 5,381 | **61.5%** ✅ | nominal 채움 가능 (★ baseline 가능) |
+| GDT | 531 | 1 | 0.2% ❌ | 학습 사실상 불가 (D-051) |
+| Roughness | 2,189 | 402 | 18.4% ⚠️ | 제한적 |
+| **Total** | **11,470** | **5,784** | **50.4%** | Donut DataModule 학습 입력 |
+
+**★ D-050 박제 — Tesseract OCR 한계 (Critical)**:
+- `--psm 6` + `kor+eng+rus+jpn` 사용
+- 도면 patch 작은 글자 (10~14 px) + 한자/일본어/한글 혼재 → OCR 노이즈 매우 큼
+- tolerance `±` 부호 인식 0% / GDT symbol (⌖/⏤/⊥) 인식 0% / Ra 키워드 인식 거의 0%
+- regex 보강 효과 ≈ 0 (OCR 노이즈가 본질 원인)
+
+**★ D-051 박제 — 1차 baseline = Measure-only**:
+- Phase 16b Donut numerical fine-tune 의 학습 효과는 **Measure nominal extraction** 에 한정
+- GDT / Roughness 는 noisy GT 로 포함되지만 학습 효과 기대 X
+- Phase 17 e2e 평가의 자리만 채움 → 후속 개선 우선순위 정량화
+
+### 6.5.3 ★ Phase 16b — Donut Numerical 학습
+
+**CLI** (★ cfg 파일 통합):
+```bash
+nohup python src/stage3_numerical.py train \
+    --cfg configs/donut_numerical.yaml \
+    --device 0 \
+    > outputs/stage3n_train.log 2>&1 &
+echo $! > outputs/stage3n_train.pid
+
+# 5분 모니터링 (NaN check)
+sleep 300 && tail -50 outputs/stage3n_train.log
+```
+
+**configs/donut_numerical.yaml 핵심**:
+- 데이터: `data/vlm/numerical/`, 70/20/10 split
+- epochs 30 / batch 4 / lr 1e-6 / cosine decay
+- precision fp16 + gradient_checkpointing (RTX 5080 16GB 대응)
+- 출력: `checkpoints/donut_numerical/`
+
+**예상 학습 시간**: ~6h (overnight)
+
+**★ 후속 (Phase 18+)**:
+- 검수 도구 작성 (Streamlit / CVAT) + 사람 검수 ~3일
+- GDT crop ~500 추가 라벨링 (extract_gdt_crops.py + CVAT)
+- Stage 3-N full GT 재학습
 
 ---
 

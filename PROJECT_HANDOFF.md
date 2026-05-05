@@ -53,7 +53,7 @@ Khan, Yong, Chen, Feng, Tan, Moon (Singapore) — 논문 PDF는 `uploads/Multi-S
 | OS | **Ubuntu 22.04 LTS on WSL2** (Windows 11 host) | 2026-04-25 변경 |
 | IDE | **Antigravity** (VS Code 기반, WSL Remote) | 2026-04-25 추가 |
 | Workspace 경로 | `/mnt/c/Users/user/github/Drawing` (WSL2에서 접근) / Windows 측 `C:\Users\user\github\Drawing` 동일 위치 | |
-| 도면 언어 | **EN / KO / JP / RU / CN** (도면 1장당 단일 언어) | D-010 / D-013 / D-025 |
+| 도면 언어 | **EN / KO / JP / RU / CN / DE** (도면 1장당 단일 언어, 6개 언어) | D-010 / D-013 / D-025 |
 | 사용자 응답 언어 | 한국어 / 코드 주석은 영어 권장 | |
 
 ---
@@ -351,7 +351,8 @@ Drawing/
 | 1.6.C | **사용자 검수 + group_key 추출 + exclude_groups 실행** | DONE | 2026-04-29 | assembly + manual_review 시각 검수 → 18 group_keys 식별 (자동 분류 후보의 80%+ false positive 제거) → exclude_groups.py 실행 (~9초) → 46 images + 46 labels 이동. **dataset/ 5,793 / excluded/ 46** / D-024 정합성 ✅. |
 | **Day 1** | Stage 2 PMI crop 라벨링 (CVAT 로컬, **★ 844 crops**) | **DONE** | 2026-05-02 | **★ 라벨링 완료**: Stage2_PMI_v3_upscaled3x_844 (upscale 3x 적용). 전체 1026 박스 (Measure 555 / Roughness 106 / GDT 88 / SKIP 277). Frame-level SKIP 32.82% (>30% 임계). v1→v2→v3 padding 진화 (D-037). **D-038 박제** (Stage 1 fp Notes Rescue): SKIP 277 중 stage1_fp_notes 23개 → Day 2 Donut OCR 처리. extract_skip_list.py + rescue_misclassified_notes.py 작성 완료, rescue 실행은 transformers 설치 후 Day 2 진행. **history.md §A.11.7 통계 박제**. |
 | **Day 2** | Phase 2 마무리 + Stage 2 학습 + Stage 3-A | **IN_PROGRESS** | 2026-05-03 | (1) ✅ uv pip install -r requirements.txt (5.94s, transformers 5.6.2) (2) ⚠ **Donut DocVQA Rescue 실질 실패** (4%) → ★ **D-039 박제: Stage 3-A → PaddleOCR-VL-1.5 채택** (0.9B, OmniDocBench 94.5%, CJK SOTA, 2026-01-29 출시). Stage 3-N → Donut Numerical 유지 + V6 검증 (★ 신규). (3) 사용자 샘플로 PaddleOCR-VL-1.5 zero-shot 사전 검증 예정 (Day 2 학습 백그라운드 시간). (4) Phase 7~14 진행: CVAT YOLO OBB export → SKIP 제거 → group-aware split → V3-A → augmentation 강화 → 학습 ~5h → V3-B → V5. |
-| **Day 3** | Stage 3 통합 + Step 7~8 | **IN_PROGRESS** | 2026-05-04 | (1) ✅ **K-fold 학습 완료** (5 folds × 9.0h, mean mAP 0.932 ± 0.062, Best Fold = 2 mAP 0.978). (2) ✅ V3-B 단일 모델 검증: Measure missing 0.101 ❌ (D-023 FAIL). (3) ✅ **★ D-040 박제: 5-Fold Ensemble 채택** — `src/ensemble_predict.py` 작성 + NMS resolver fix (manual shapely fallback). (4) ✅ **D-023 PASS**: Measure/GDT/Roughness missing = 0.000, drawing_recall = 1.000. (5) ✅ pipeline.py 통합 (use_ensemble default ON, lazy load, model_versions 메타 갱신). (6) **다음**: PaddleOCR-VL-1.5 통합 (Stage 3-A) → Donut Numerical fine-tune ~6h → V6 (★ D-023 critical) → V7 → Step 8. |
+| **Day 3 (Phase 14 + 15a + 15b 작성 DONE)** | Stage 2 ensemble + GitHub + Phase 15a 환경 + 15b 스크립트 | **PARTIAL DONE** | 2026-05-04 | **Phase 14**: K-fold 학습 → **★ D-040 5-Fold Ensemble** → **D-023 PASS** → pipeline.py 통합 → smoke test → **★ D-041 GitHub push** (https://github.com/amadda0616-hash/IMMA). **Phase 15a**: `.venv-paddleocr` 분리 → **★ D-042 monkey-patch** (7차 시도 PASS) → `install_check.py` 작성 (393 lines) → **검증 PASS** (0.91B / 39.7s / 2.26~3.47s / 3.29GB). **Phase 15b 작성**: **★ D-043 도메인 한계 박제** (한국어 학습용 / 영어 부족 / 중국어 풍부 / CNC+기어 위주) + 사용자 sample 5장 확정 (한/영/일/중/러) + ★ **독일어 ~10장 발견 (D-025 6개 언어 확장)** + `stage3_paddleocr_zero_shot_test.py` 작성 (786 lines) + **★ D-044 TitleBlock Schema 23 필드** (ISO 7200 + KS A 0005 + 첨부 이미지 통합) + stage1_fp_notes 23개 박제 (CAD_Drawing219 14 + sample_01266 9). **다음 세션 (Phase 15b 실행 ~ 15e)**: [`docs/NEXT_SESSION_GUIDE.md`](./docs/NEXT_SESSION_GUIDE.md) 참조 — 5장 평가 → 정성 검토 → 15c 백엔드 교체 → 15d Notes Rescue → 박제 + commit. |
+| **Day 4 (Phase 15b 1차~4차 + D-045~D-048 + Phase 16a 완료 + Phase 16b 학습 시작)** | Phase 15b 반복 + 4차 부분 PASS + Phase 16a/b | **IN_PROGRESS** | 2026-05-06 | (1)~(6) Phase 15b ~ D-048 (Day 4 이전 박제). (7) ✅ **★ Phase 16a 완료 (24분 04초)** — `prepare_vlm_dataset.py numerical --limit 500` 처리: 500/500 도면 → **11,470 region** 생성 (도면당 평균 22.94). manifest.csv 정상 작성. **★ D-049 sys.path bootstrap pattern 적용** (prepare_vlm_dataset.py + auto_fill_numerical_gt.py). 인자명 정정 (--input → --dataset, --stage1-weights → --det-weights, --stage2-ensemble → --obb-weights 단일 파일, --output 인자 없음). (8) ✅ **★ Auto-fill 결과 (2분 22초, 50.4%)** — Measure 61.5% (5,381/8,750) ★ baseline 충분 / GDT 0.2% (1/531) ★ 학습 불가 / Roughness 18.4% (402/2,189). **★ D-050 박제** Tesseract OCR 한계 (tolerance/GDT/Ra 인식 0%). **★ D-051 박제** 1차 baseline = Measure-only. **★ 5개 기준 4/5 통과** (#5 학습 안정성은 시작 후 검증). (9) **이제 진행**: Phase 16b overnight 학습 시작 (`stage3_numerical.py train --cfg configs/donut_numerical.yaml --device 0`, ~6h, 예상 종료 ~06:00). 다음 날 아침: V6 검증 + ja 영역별 Stage 3-A 평가. **★ 신규 박제**: `docs/KNOWN_LIMITATIONS.md` (376 lines, 한계 단일 source) + `outputs/workflow_diagram_v4.png` + `outputs/IMMA_progress_report_v4.docx` (동료 공유용 진행 보고서). |
 | 3 | Stage 2 학습/추론 코드 (`src/stage2_annotation.py`) | DONE | 2026-04-25 | YOLOv11-obb. 서브커맨드 `train` / `predict` / `crop`. 공개 함수 `predict_one()`, `crop_obb_regions()` (perspective-warp). 회전 augmentation ON. |
 | 4 | VLM pair 자동 생성기 (`src/prepare_vlm_dataset.py`) | DONE | 2026-04-27 | Stage 1+2 추론 → de-rotation crop → JSON 템플릿 자동 생성 + manifest. `all`/`alphabetical`/`numerical` 3 서브커맨드. `--ocr-prefill` 옵션 (Pytesseract). Group key 추출 8 케이스 PASS, 5종 템플릿 빌더 검증, 숫자 hint 추출 (Ø25.4 / Ra 1.6 / M8 등) 정상 |
 | 5 | Stage 3-A 래퍼 (`src/stage3_alphabetical.py`) | DONE | 2026-04-26 | Donut zero-shot. DocVQA(다중 질문) / CORD-v2(단일 패스) 두 모드. 공개 함수 `load_model()`, `predict_one()`, `predict_titleblock()`, `predict_notes()`. CLI: `predict` / `batch`. FP16 기본, RTX 5080 16GB 호환. |
@@ -388,7 +389,8 @@ Drawing/
 - **5,839 JPG**가 `dataset/` 에 적재됨 (2026-04-27: 4,587 → 2026-04-28: 5,839, +1,252).
   일부 이미지는 **사용자 사전 증강** (뒤집기 + 회전) 적용된 상태
 - 원본 + 증강이 같은 풀에 섞여 있으므로 **train/val split 시 데이터 누수 주의** (D-024 group-aware split)
-- **5개 언어** (EN / KO / JP / RU / **CN**) 혼합. 도면 1장 = 단일 언어 가정 (D-010 / D-013 / D-025)
+- **6개 언어** (EN / KO / JP / RU / CN / **DE**) 혼합. 도면 1장 = 단일 언어 가정 (D-010 / D-013 / D-025).
+  ★ DE (독일어) 약 10장 추가 (2026-05-04 사용자 확인) — Phase 15b 진입 전 발견.
 - 가공도면 + 조립도면 혼재 (D-026) — `src/sort_by_drawing_type.py` 로 자동 분류
 - 약 **95% 도면에 TB 존재** (D-027) — TB 유무 분류 가치는 낮음. 분류 없이 Stage 1 라벨링 (D-019)
 - 논문 비례: 5,839장 = Stage 1 논문(1,000)의 5.8× / Stage 2 논문(1,406)의 4.2× → 양 충분
@@ -452,15 +454,20 @@ Drawing/
     - Stage 1 augmentation 정책(D-001 / yolo_det.yaml: `fliplr=0.0, flipud=0.0`)은 **그대로 유지**. 이유: 사전 증강된 flip 이미지는 별개 학습 샘플로 들어가고, on-the-fly augmentation 추가 flip은 중복·과적합 위험.
     - Stage 2 회전 augmentation(yolo_obb.yaml: `degrees=15.0`)도 그대로 유지. 사전 회전과 결합해 다양성 ↑.
     - sort_by_titleblock.py manifest CSV 에 group key 컬럼 추가 권장 (후속 작업 시).
-25. **D-025 (5개 언어 확장, 2026-04-28)** 라벨링 시작 시점에 **Chinese (中文) 추가** 발견. 도면 언어는 이제 **EN / KO / JP / RU / CN (簡/繁體 모두)** 5가지.
-    - **Tesseract**: `lang='kor+eng+rus+jpn+chi_sim+chi_tra'` 단일 호출
-    - 시스템 패키지 추가: `tesseract-ocr-chi-sim`, `tesseract-ocr-chi-tra`
-    - `sort_by_titleblock.py` 키워드 사전에 中文 추가 필요 (圖紙/標題/比例/材質/張數/設計/圖號 등 — 簡/繁 모두)
-    - `data/kb/material_catalog.json` 에 GB (Guobiao) 표준 grade 추가 필요 (Q235 / 45# / 0Cr18Ni9 등)
-    - `validation_thresholds.yaml#step1_5.per_language_min` 에 CN 추가
+25. **D-025 (6개 언어 확장, 2026-04-28 / 2026-05-04 갱신)** 라벨링 시작 시점에 **Chinese (中文) 추가** 발견. 추가로 Phase 15b 진입 전 **German (Deutsch) 약 10장 발견** (2026-05-04). 도면 언어는 이제 **EN / KO / JP / RU / CN (簡/繁體 모두) / DE** 6가지.
+    - **★ 2026-05-04 갱신**: 독일어 도면 약 10장 추가 (사용자 확인). 비율은 적지만 D-013 4개 → D-025 5개 → 6개 언어 확장.
+    - **Tesseract**: `lang='kor+eng+rus+jpn+chi_sim+chi_tra+deu'` 단일 호출
+    - 시스템 패키지 추가: `tesseract-ocr-chi-sim`, `tesseract-ocr-chi-tra`, **`tesseract-ocr-deu`** (★ 2026-05-04 추가)
+    - `sort_by_titleblock.py` 키워드 사전에 中文 + 獨語 추가 필요 (中文: 圖紙/標題/比例/材質/張數/設計/圖號 / DE: Zeichnung/Titel/Maßstab/Werkstoff/Stückzahl/Konstrukteur/Zeichnungsnummer)
+    - `data/kb/material_catalog.json` 에 GB (Guobiao) + **DIN/EN (German/European)** 표준 grade 추가 필요 (DIN: St37/C45/X5CrNi18-10 등)
+    - `validation_thresholds.yaml#step1_5.per_language_min` 에 CN + **DE** 추가
     - Stage 1·2 YOLO 는 D-009에 따라 언어 무관 — 영향 없음
-    - Stage 3-A Donut 은 영어 위주 사전학습 → CN 정확도 상대적으로 낮을 것 → Step 9 enrichment 의존도 ↑
+    - Stage 3-A PaddleOCR-VL-1.5 (D-039 채택) 는 100+ 다국어 지원 → DE 자동 처리 (별도 fine-tune 불필요 예상)
     - 코드 수정 필요 항목은 차후 별도 작업 (이 D-025 박제 시점에서는 미실행)
+    - **Phase 15b 평가 시 가중치**:
+      - DE 1장 (or 활용 가능 시 일부) → mid confidence (sample 적음)
+      - 독일어는 PaddleOCR-VL-1.5 의 라틴 알파벳 base 라 정확도 높을 것 예상
+      - **★ 향후**: 독일어 도면 ~10장 별도 분석 후 V5 통합 평가
 26. **D-026 (가공/조립 도면 분류 필요, 2026-04-28)** Roboflow 데이터셋에 **가공도면 + 조립도면** 혼재 발견. 조립도면은 치수 표기가 거의 없어 Stage 2 (Measure/GDT/Roughness OBB) 학습 데이터로 무용.
     - **영향 범위**:
       - Stage 1 (View/TB/Notes 영역 검출): 가공/조립 모두 사용 가능
@@ -891,6 +898,485 @@ Drawing/
       - `outputs/v3b_summary.txt` (V3-B + ensemble 결과)
       - `outputs/v3b_ensemble_eval.json` (raw evaluate)
     - **상세 박제**: `history.md §A.11.13` (.1 ~ .8)
+
+41. **D-041 (GitHub IMMA repo 워크플로 + Google Drive 자산 분리, 2026-05-04)**
+    - **결정**: GitHub repo 와 Google Drive 의 자산 분리 정책 확립.
+    - **분리 정책**:
+      | 위치 | 용도 | 크기 |
+      |---|---|---|
+      | **GitHub IMMA** | 코드 + 문서 + 박제 (작은 산출물) | ~5 MB |
+      | **Google Drive** | 모델 weights + dataset + 라벨 + 참고 자료 | ~10 GB |
+    - **GitHub repo**: https://github.com/amadda0616-hash/IMMA
+    - **Google Drive**: https://drive.google.com/drive/u/0/folders/1YweZCGEe8JbrRBaMSlSS7WIIx-yk_r8M
+    - **`.gitignore` 핵심 패턴**:
+      - `*.pt` `*.pth` `*.bin` `*.safetensors` `*.onnx` (모델 weights, GitHub 100MB 제한 회피)
+      - `*.jpg` `*.jpeg` `*.png` (전역) + whitelist (`!docs/**/*.png`, `!workflow_*.png`)
+      - `dataset/**` `IMMA.v1i.yolov11/` `articles/` `data/annotation/**` (저작권 + 외부 자산)
+      - `*.docx` `*.xlsx` `*.pdf` (사용자 보고서)
+    - **저작권 보호**: 라벨 파일명에 도면 ID 노출되므로 (`CAD_Drawing385_jpg.rf.<hash>__PMI_005.txt`) `data/annotation/**` 전체 ignore.
+    - **Pull 전략 (★ 함정 박제)**:
+      - **`git config pull.rebase true` 활성화 환경에서 `git pull --allow-unrelated-histories` 시 conflict 해결의 ours/theirs 의미 반대**
+      - rebase 중 `--ours` = upstream/origin (들어오는 변경) ⚠️
+      - 일반 merge 의 `--ours` = 현재 브랜치 (local)
+      - **권장 설정**: `git config pull.rebase false` 로 명시적 merge 모드 사용
+      - 또는 `git rebase --abort` 후 일반 merge 로 재시도
+    - **이전 IMMA repo (16 commits) 보존 정책**:
+      - 원격에 한글 논문 PDFs (`논문_kr/`), `erd.mermaid`, 메모 파일들 존재
+      - `--allow-unrelated-histories` 로 병합 commit 작성 → 보존
+      - README 충돌만 발생, 우리 commit 의 README 복원 후 push
+    - **백업 자산 가이드**: [`docs/GOOGLE_DRIVE_ASSETS.md`](./docs/GOOGLE_DRIVE_ASSETS.md)
+    - **Phase 15+ 체크리스트**: [`docs/PHASE15_CHECKLIST.md`](./docs/PHASE15_CHECKLIST.md)
+    - **상세 박제**: `history.md §A.11.14`
+
+42. **D-042 (PaddleOCR-VL-1.5 transformers monkey-patch + 별도 venv 분리, 2026-05-04)**
+    - **결정**: Phase 15a 환경 설치 시 PaddleOCR-VL-1.5 호환성 워크어라운드 + 별도 venv 분리 정책 확립.
+    - **★ Critical workaround (1줄)**:
+      ```python
+      from transformers import AutoConfig
+      config = AutoConfig.from_pretrained('PaddlePaddle/PaddleOCR-VL-1.5', trust_remote_code=True)
+      if not hasattr(config, "text_config") and hasattr(config, "get_text_config"):
+          config.text_config = config.get_text_config()
+      ```
+      **모든 후속 코드** (`stage3_alphabetical.py`, `pipeline.py`, etc.) 가 이 patch 적용해야 함.
+    - **별도 venv (`.venv-paddleocr`)**:
+      - Python 3.10.20 / torch 2.11.0+cu128 / transformers 5.0.0
+      - accelerate / sentencepiece / protobuf / einops / pillow
+      - Phase 14 ultralytics venv (`.venv`) 와 분리 — 의존성 충돌 회피
+    - **이슈 + 해결 매트릭스 (★ 7차 시도)**:
+      | 시도 | 환경 | 에러 |
+      |---|---|---|
+      | 1 | transformers 5.6.2 + AutoModel | ROPE_INIT_FUNCTIONS['default'] KeyError |
+      | 2 | transformers 4.49.0 + AutoModel | masking_utils 모듈 없음 |
+      | 3 | transformers 4.50.0 + AutoModel | masking_utils 미도입 |
+      | 4 | transformers 4.50.0 + AutoModelForImageTextToText | 4.x native paddleocr_vl 없음 |
+      | 5 | transformers 5.0.0 + AutoModel | 같은 ROPE 에러 (잘못된 클래스) |
+      | 6 | transformers 5.0.0 + AutoProcessor + AutoModelForImageTextToText | text_config AttributeError |
+      | **★ 7** | **transformers 5.0.0 + monkey-patch + AutoProcessor + AutoModelForImageTextToText** | **PASS** ✅ |
+    - **vLLM 미선택 사유**:
+      | 옵션 | Phase 15 채택 | 사유 |
+      |---|---|---|
+      | transformers | ★ 채택 | drop-in 단순, debug 쉬움, 단일 호출 위주 |
+      | vLLM | Phase 17 검토 | batch throughput 4~6× 빠름 (5,839 도면 시 7h vs 1.5h) |
+    - **검증 PASS 결과 (`outputs/stage3a_install_check.json`)**:
+      - Model params: 0.91B (논문 일치)
+      - Load time: 39.7s (warm cache)
+      - Inference: 2.26~3.47s / 더미 이미지
+      - GPU used: 3.29 GB / 17.09 GB
+    - **관련 파일**:
+      - `src/stage3_paddleocr_install_check.py` (★ 신규, 393 lines)
+      - `outputs/stage3a_install_check.json`
+      - `docs/modules/stage3_paddleocr_install_check.md` (★ 신규)
+    - **차후 검토**:
+      - PaddleOCR-VL-2.0 출시 시 monkey-patch 폐기 가능 여부 재확인
+      - transformers 5.x major 버전 업그레이드 시 ROPE/masking API 호환성 재검증
+      - Phase 17 batch 단계에서 vLLM 도입 ROI 측정
+    - **상세 박제**: `history.md §A.12.1` ~ `§A.12.2`
+
+43. **D-043 (Stage 3-A 평가 데이터 도메인 한계 박제, 2026-05-04)**
+    - **배경**: Phase 15b zero-shot 평가용 sample 7장 (한/영/일×2/중×2/러) 검토 중 **데이터셋 도메인 한계** 발견.
+    - **★ 5가지 핵심 통찰 (사용자 분석)**:
+      | # | 발견 | Phase 15b 영향 | Phase 16+ 영향 |
+      |---|---|---|---|
+      | 1 | 영어 비율 매우 적음 | V5 영어 신뢰도 낮음 (1장) | 영어 도면 추가 수집 |
+      | 2 | 한국어 = 학습용 (TitleBlock 단순) | 실 산업 한국 도면 부족 | **★ 한국 산업 도면 별도 수집 필요** |
+      | 3 | 중국어 자료 풍부 + 우수 (간체 + 번체) | zero-shot baseline | 중국어 가중치 ↑ 가능 |
+      | 4 | CNC + 기어 가공 위주 (용접/판금/후처리 부재) | TitleBlock + Notes 어휘 편향 | **★ Stage 3-N fine-tune 시 도메인 한계 명시** |
+      | 5 | 데이터 증강 비율 높음 (mirror/회전/색상) | group leak 검증 필수 | D-024 정책 유지 |
+    - **결정**:
+      - Phase 15b 평가 시 **언어별 confidence 가중치 적용**:
+        - 영어 1장 → low confidence
+        - 한국어 1장 → "학습용" 한정 (실 산업 도면 별도 검증 권장)
+        - 일본어 2장 → high confidence
+        - 중국어 2장 → high confidence (간체 + 번체)
+        - 러시아 1장 → mid confidence
+      - Phase 16 Stage 3-N fine-tune 시 **도메인 한계 명시** ("CNC + 기어 가공 도면 최적화" 박제)
+      - 향후 데이터 수집 (Stage 1 V.B 단계): 한국어/영어 산업 도면 + 용접/판금/후처리 공정 보강
+    - **상세 박제**: `history.md §A.12.0`
+
+44. **D-044 (TitleBlock Standard Schema — ISO 7200 + KS A 0005 + 첨부 이미지 통합 23 필드, 2026-05-04)**
+    - **결정**: Phase 15b zero-shot 평가 + 차후 Stage 3-A 통합 시 사용할 **23 필드 표준 schema** 확립.
+    - **배경**: 사용자 첨부 "Structured JSON Output" 예시 + Web search (ISO 7200:2004 / ASME Y14 / KS A 0005) 비교 결과 기존 14 필드에서 9 필드 누락 발견.
+    - **23 필드 분류**:
+      | 카테고리 | 필드 |
+      |---|---|
+      | identification (5) | drawing_no / project_id ★ / title / sheet / revision |
+      | descriptive (10) | part_name / material / mass ★ / scale / projection ★ / paper_size ★ / quantity / surface_treatment / heat_treatment ★ / general_tolerance ★ |
+      | administrative (8) | company / department ★ / drawn_by / designed_by ★ / checked_by / approved_by / date / state ★ |
+    - ★ = 본 박제로 추가된 9 필드.
+    - **표준 출처**:
+      - ISO 7200:2004 mandatory (8): legal_owner / drawing_no / date / sheet / title / approval_person / creator / document_type
+      - ISO 7200 optional: revision / sheets_total / supplementary_title / department / classification / state / paper_size
+      - ISO 7200 dynamic (외부 표기): scale / projection / general_tolerance / surface_texture
+      - KS A 0005: 도면번호 / 명칭 / 재질 / 척도 / 설계자 / 검도자 / 승인자 / 일자
+      - 첨부 이미지: project_id / mass / state / designed_by 분리
+    - **구현**:
+      ```python
+      TITLEBLOCK_STANDARD_SCHEMA = {
+          "identification": ["drawing_no", "project_id", "title", "sheet", "revision"],
+          "descriptive": [
+              "part_name", "material", "mass", "scale", "projection",
+              "paper_size", "quantity", "surface_treatment",
+              "heat_treatment", "general_tolerance",
+          ],
+          "administrative": [
+              "company", "department", "drawn_by", "designed_by",
+              "checked_by", "approved_by", "date", "state",
+          ],
+      }
+      ```
+    - **다국어 keyword hint**:
+      - 한국어: 도면번호 / 명칭 / 재질 / 척도 / 일자
+      - 일본어: 図番 / 部品名 / 材質 / 尺度 / 日付
+      - 중국어 (간체/번체): 图号/圖號 / 名称/名稱 / 材料/材質
+      - 러시아: Номер чертежа / Название / Материал / Масштаб
+      - 독일어: Zeichnungsnummer / Bauteil / Werkstoff / Maßstab
+    - **적용 범위**:
+      - `src/stage3_paddleocr_zero_shot_test.py` (★ Phase 15b — 본 박제로 적용)
+      - 차후 `src/stage3_alphabetical.py` (Phase 15c 백엔드 교체)
+      - 차후 `src/pipeline.py` §5.5 unified JSON schema 갱신
+    - **관련 파일**:
+      - `src/stage3_paddleocr_zero_shot_test.py` (`TITLEBLOCK_STANDARD_SCHEMA` 상수)
+      - `docs/modules/stage3_paddleocr_zero_shot_test.md` (★ 신규)
+    - **상세 박제**: `history.md §A.12.3`
+
+45. **D-045 (PaddleOCR-VL-1.5 generation parameters + Prompt 단순화, 2026-05-05)**
+    - **결정**: PaddleOCR-VL 사용 시 **`repetition_penalty=1.2` + `no_repeat_ngram_size=4` + `max_new_tokens=512` 필수**. Prompt 의 schema list (23 필드 등) 는 hallucination 유발 → 제거.
+    - **배경**: Phase 15b 1차 평가 (5장) — 모든 도면에서 **degenerate generation (반복 패턴)** 발생. 단 en `full_text` (단순 prompt) 만 정상.
+    - **★ 1차 실패 사례 (★ 박제 가치)**:
+      | 도면 | 출력 패턴 |
+      |---|---|
+      | en titleblock | `"Data Type \| Data Type \| ..." × 4096 chars` |
+      | en notes | `"All notes are for the following:" × 102` |
+      | ja titleblock | `"12345..." 1024 chars` |
+      | ko titleblock | **"図番号" (일본어) 반복** — 한국어 → 일본어 fallback |
+      | ru titleblock | `"100°N, 72°E, 140°W" GPS 좌표 hallucination` |
+      | zh titleblock | `"\| 1 \| 2 \| 3 \|..." 숫자 표` |
+      | en full_text | ✅ **정상 ("120, 23, 4 Holes #9 Thro', ALL DRILLED & TAPPED HOLES...")** |
+    - **유일 baseline**: `full_text` prompt 가 정상 작동 → 모델 자체는 OCR 가능. 문제는 **prompt + generation parameters**.
+    - **★ Fix 1 (generation parameters)**:
+      ```python
+      gen_kwargs = dict(
+          max_new_tokens=512,            # 1024 → 512 (반복 패턴 길이 제한)
+          do_sample=False,
+          repetition_penalty=1.2,        # ★ 신규 — 반복 토큰 페널티
+          no_repeat_ngram_size=4,        # ★ 신규 — 4-gram 반복 차단
+          pad_token_id=processor.tokenizer.eos_token_id,
+      )
+      output_ids = model.generate(**inputs, **gen_kwargs)
+      ```
+    - **★ Fix 2 (Prompt 단순화)**:
+      - 이전: `"Search for ALL of these fields when present: drawing_no, project_id, title, sheet, revision, part_name, material, mass, scale, projection, paper_size, quantity, surface_treatment, heat_treatment, general_tolerance, company, department, drawn_by, designed_by, checked_by, approved_by, date, state. ..."`
+      - 신규: `"Read the title block (legend block) of this engineering drawing. The title block usually appears at the bottom-right or bottom of the drawing and contains structured fields such as drawing number, title, material, scale, sheet number, designer, date, etc. Extract the visible fields and return as a single JSON object. ..."`
+      - **이유**: 23 필드 list 가 모델에게 schema 모방 패턴을 유도 → 표 형식 hallucination
+      - `TITLEBLOCK_STANDARD_SCHEMA` 상수 (D-044) 는 **후처리/박제용으로 유지** — JSON parse 시 검증, 향후 fine-tune label 정의
+    - **모든 후속 코드** (`stage3_alphabetical.py`, `pipeline.py` 등) 가 D-045 generation parameters 적용해야 함.
+    - **차후 검토**:
+      - 이미지 해상도 (640×640) 가 한계인 도면 → 원본 고해상도 (1280+) 로 교체 시 정확도 ↑
+      - PaddleOCR-VL-2.0 출시 시 default generation parameters 재확인
+      - vLLM 도입 시 동등 parameter 적용 (sampling_params)
+    - **관련 파일**:
+      - `src/stage3_paddleocr_zero_shot_test.py` (★ Fix 적용, 802 lines)
+      - `outputs/stage3a_zero_shot_eval.{json,md}` (1차 실패 결과 — degenerate 박제)
+    - **상세 박제**: `history.md §A.12.4`
+
+46. **D-046 (PaddleOCR-VL-1.5 README 권장 호출 방식 — Critical Fix, 2026-05-05)**
+    - **결정**: PaddleOCR-VL 사용 시 README sample code 의 정확한 호출 방식 채택. **자연어 prompt 폐기** + **task keyword** + **bfloat16** + **apply_chat_template 통합** + **max_pixels 명시**.
+    - **배경**: D-045 (1차 fix) 이후 2차 평가에서도 부분 실패 — Layout token 누출 (`<|LOC_xxx|>`) / emoji hallucination / TitleBlock 인식 실패. 원인 추적: README 권장 방식과 우리 구현이 5가지 차이.
+    - **★ 5가지 차이점**:
+      | # | 항목 | 잘못된 (D-045) | 정정 (D-046) | 영향 |
+      |---|---|---|---|---|
+      | 1 | Prompt | 자연어 ("Read the title block...") | **task keyword** (`"OCR:"`, `"Table Recognition:"`, `"Spotting:"`) | ★★★ critical |
+      | 2 | dtype | `torch.float16` | **`torch.bfloat16`** | ★★ |
+      | 3 | Messages content | `{"type": "image"}` (binding 분리) | `{"type": "image", "image": image}` (직접) | ★★ |
+      | 4 | Input pipeline | `processor(images=, text=)` 분리 | `apply_chat_template(... tokenize=True, return_dict=True, images_kwargs={...})` 통합 | ★★ |
+      | 5 | max_pixels | 미설정 | `1280 * 28 * 28` (default) / `2048 * 28 * 28` (spotting) | ★ |
+    - **★ 6개 Task Keyword (README BLOCK 3)**:
+      ```python
+      PROMPTS = {
+          "ocr":      "OCR:",                   # 전체 텍스트 transcribe
+          "table":    "Table Recognition:",     # ★ 표 형식 (TitleBlock!)
+          "formula":  "Formula Recognition:",   # 수식
+          "chart":    "Chart Recognition:",     # 차트
+          "spotting": "Spotting:",              # 텍스트 + bbox
+          "seal":     "Seal Recognition:",      # 도장
+      }
+      ```
+    - **★ 우리 use case 매핑**:
+      - `titleblock` → **`"Table Recognition:"`** (TitleBlock = 표)
+      - `notes` → **`"OCR:"`**
+      - `full_text` → **`"OCR:"`**
+      - 향후: stage1_fp_table 도장 영역 → `"Seal Recognition:"`
+    - **★ 정확한 호출 코드**:
+      ```python
+      from PIL import Image
+      import torch
+      from transformers import AutoProcessor, AutoModelForImageTextToText
+
+      model = AutoModelForImageTextToText.from_pretrained(
+          "PaddlePaddle/PaddleOCR-VL-1.5",
+          torch_dtype=torch.bfloat16,                # ★ bfloat16
+      ).to("cuda").eval()
+      processor = AutoProcessor.from_pretrained("PaddlePaddle/PaddleOCR-VL-1.5")
+
+      image = Image.open(image_path).convert("RGB")
+      max_pixels = 1280 * 28 * 28   # ★ 명시 (1003520)
+
+      messages = [{
+          "role": "user",
+          "content": [
+              {"type": "image", "image": image},     # ★ image 직접 포함
+              {"type": "text", "text": "Table Recognition:"},  # ★ task keyword
+          ]
+      }]
+
+      # ★ apply_chat_template 통합 호출
+      inputs = processor.apply_chat_template(
+          messages,
+          add_generation_prompt=True,
+          tokenize=True,
+          return_dict=True,
+          return_tensors="pt",
+          images_kwargs={
+              "size": {
+                  "shortest_edge": processor.image_processor.min_pixels,
+                  "longest_edge": max_pixels,
+              }
+          },
+      ).to(model.device)
+
+      outputs = model.generate(**inputs, max_new_tokens=512)
+      # ★ input 부분 슬라이스 + processor.decode
+      result = processor.decode(
+          outputs[0][inputs["input_ids"].shape[1]:],
+          skip_special_tokens=True,
+      )
+      ```
+    - **D-045 의 generation parameters 폐기**:
+      - `repetition_penalty=1.2` / `no_repeat_ngram_size=4` → 제거 (README 미사용, 너무 보수적이라 정상 generation 도 차단됨)
+      - `pad_token_id` → 제거
+      - `max_new_tokens=512` 만 유지
+    - **D-044 TitleBlock 23 필드 schema 처리**:
+      - `Table Recognition:` 출력은 markdown table (자유 형식) — JSON 직접 X
+      - 2단계 처리: ① raw markdown 추출 → ② 정규식/LLM 으로 schema 매핑
+      - `TITLEBLOCK_STANDARD_SCHEMA` 상수는 후처리 reference 로 유지
+    - **추가 옵션 (BLOCK 4)**: `attn_implementation="flash_attention_2"` — 추론 가속 (현재 미설치, 차후 검토)
+    - **2차 결과의 모든 문제 — 원인 명확**:
+      | 문제 | 원인 |
+      |---|---|
+      | Layout token `<|LOC_xxx|>` 누출 | 자연어 prompt → spotting mode confuse |
+      | emoji hallucination "📊 🔄 💬" | 자연어 + float16 numerical instability |
+      | TitleBlock 인식 실패 | `"OCR:"` 만으론 표 구조 X → `"Table Recognition:"` 필수 |
+      | en full_text 1차 → 2차 퇴행 | 1차 우연히 `"OCR:"` 와 가까운 자연어, 2차 repetition_penalty 과도 |
+    - **관련 파일** (Fix 후):
+      - `src/stage3_paddleocr_zero_shot_test.py` (★ D-046 적용 예정)
+      - `src/stage3_paddleocr_install_check.py` (★ dtype 변경 + 호출 방식 갱신 예정)
+      - `outputs/stage3a_zero_shot_eval_v2_partial.{json,md}` (2차 결과 — 박제 가치)
+    - **상세 박제**: `history.md §A.12.5`
+
+48. **D-048 (Stage 1 V.A 일본어/복잡 도면 generalization 검증, 2026-05-05)**
+    - **결정**: ja_drawing 같은 다중 도면 + 다국어 페이지는 **Stage 1 (yolo_det.pt) 가 자동 분리 → 영역별 Stage 3-A 적용** 이 표준 흐름. 사용자 가설 ("다중 도면 분리 후 처리") = 우리 architecture 의 핵심 design.
+    - **근거 — Stage 1 V.A zero-shot 검증** (ja_drawing 3334×2375):
+      | 클래스 | 수량 | 평균 conf | 평균 사이즈 |
+      |---|---|---|---|
+      | View | **6** | 0.83 | ~800×900 |
+      | TitleBlock | **3** | 0.87 | ~1000×400 |
+      | Notes | **3** | 0.65 | ~700×300 |
+      | PMI | 98 | 0.55 | (small dim labels) |
+    - **핵심 검출 (★ TitleBlock + Notes — Stage 3-A 입력)**:
+      - TitleBlock #1 conf=0.921 — CRITICAL CONTROL DESIGNATION 표 (1025×685)
+      - TitleBlock #2 conf=0.873 — BSBM TT-10CW 메인 (1106×282)
+      - Notes #1 conf=0.824 — 注記 5개 (916×306)
+    - **★ 사용자 가설 검증 결과**:
+      - ✅ Stage 1 V.A (영어 100장 seed) → 일본어 도면도 잘 분리 (★ generalization 우수)
+      - ✅ 분리 후 영역 사이즈 충분 (~800×900) — PaddleOCR-VL `max_pixels=1003520` 이내
+      - ✅ "분리 후 해상도 하락" 우려 → **PaddleOCR-VL image_processor 자동 normalize** 로 해결
+    - **시사점**:
+      - Stage 1 V.A 가 다국어 + 복잡 도면 generalize 가능 → V.B 재학습 우선순위 ↓
+      - ja_drawing 같은 합성 도면도 pipeline.py Stage 1 → Stage 3-A 흐름으로 처리 가능
+      - 4차 평가 ja 실패 (단일 처리 시 "B" 반복) → 분리 후 처리 시 정상화 기대
+    - **다음 단계 (Phase 15c 후속, 다음 날)**:
+      - `outputs/crops/ja_drawing/{Table, Notes}/` 영역별 Stage 3-A 평가
+      - 결과 PASS 시 → ja 도 부분 PASS 인정
+      - FAIL 시 → 한계 명시 + Phase 17 e2e 종합 재평가
+    - **관련 파일**:
+      - `outputs/ja_drawing.det.json` (110 region)
+      - `outputs/crops/ja_drawing/` (자동 분리 crop)
+    - **상세 박제**: `history.md §A.12.8.4`
+
+47. **D-047 (PaddleOCR-VL OTSL Table Format + 3차 평가 V5 미통과 박제, 2026-05-05)**
+    - **결정**: PaddleOCR-VL `Table Recognition:` 출력은 **OTSL (Optimized Table Structure Language) 토큰**. `<fcel>` / `<lcel>` / `<nl>` token 으로 표 구조 인코딩 → 후처리로 markdown / HTML / JSON 변환 필요.
+    - **3차 평가 (D-046 적용) 결과**:
+      | 도면 | OCR (notes) | OCR (full) | Table Recognition | 평가 |
+      |---|---|---|---|---|
+      | en | ✅ 정확 | ✅ 정확 | ⚠ OTSL token | 부분 성공 |
+      | **ru** | ✅ **80%+** (Notes 5개 정확) | ✅ 동일 | ⚠ | ★ 가장 성공 |
+      | ja | ❌ "B" 반복 | ❌ 동일 | ⚠ | 실패 |
+      | ko | ❌ "샌드자동화기술사" hallucination | ❌ "철선자동화기능사" | ⚠ "비윤리" | 실패 (640×640 한계) |
+      | zh | ⚠ dimension 일부 | ⚠ 동일 | ⚠ | 부분 실패 |
+    - **D-013 V5 임계값**:
+      | 지표 | 측정값 | 임계값 | 판정 |
+      |---|---|---|---|
+      | 평균 char accuracy | ~0.50 | ≥ 0.85 | ❌ FAIL |
+      | field-level F1 | ~0.48 | ≥ 0.80 | ❌ FAIL |
+      | hallucination rate | ~0.30 | ≤ 0.05 | ❌ FAIL |
+    - **★ D-046 효과 입증** (FAIL 이지만 향상):
+      - 무한 반복 ~95% → 0%
+      - Layout token 누출 → 사라짐
+      - emoji hallucination → 사라짐
+      - 한국어 → 일본어 fallback → 사라짐
+      - en/ru 부분 성공 (baseline 확보)
+    - **OTSL Token 명세**:
+      ```
+      <fcel> = first cell (테이블 셀 시작)
+      <lcel> = list cell (다음 셀)
+      <nl>   = new line (행 바꿈)
+      ```
+      예시 출력:
+      ```
+      <fcel>120<lcel><lcel><lcel><lcel><lcel>...<nl><fcel>...
+      ```
+      → **셀 시작 인식 OK / 셀 내 텍스트 추출 부족** (작은 이미지 한계)
+    - **원인 3가지** (★ 박제):
+      1. **이미지 해상도 부족 (★ 가장 큰 요인)** — en/ko/ru/zh: 640×640 → 작은 글자 한계
+      2. **Table Recognition 후처리 부재** — OTSL → markdown 변환 미구현
+      3. **모델 fine-tune 부재** — PaddleOCR-VL-1.5 는 일반 문서 (책/신문) 학습, 엔지니어링 도면 도메인 적응 부족
+    - **다음 단계 4 옵션**:
+      | Option | 작업 | 권장도 |
+      |---|---|---|
+      | **A. 이미지 고해상도 교체** | 5장 → 1280+ 재제공 | ★★ |
+      | **B. OTSL → markdown 후처리** | 정규식 또는 PaddleOCR native package | ★★★ |
+      | **C. Stage 3-N 우선** | Phase 16 진행 후 e2e 시 재평가 | ★★ (시간 효율) |
+      | **D. 폴백 평가** | Qwen3-VL / DeepSeek-OCR-3 별도 평가 | ★ |
+    - **관련 파일**:
+      - `src/stage3_paddleocr_zero_shot_test.py` (D-046 fix 809 lines)
+      - `src/stage3_paddleocr_install_check.py` (D-046 fix 404 lines)
+      - `outputs/stage3a_zero_shot_eval_v3_partial.{json,md}` (3차 결과)
+      - `outputs/stage3a_zero_shot_eval_v2_partial.{json,md}` (2차 보존)
+    - **상세 박제**: `history.md §A.12.6`
+
+49. **D-049 (sys.path bootstrap pattern 확장 — Phase 16a 진입, 2026-05-05)**
+    - **배경**: `python src/prepare_vlm_dataset.py numerical ...` 실행 시 `ModuleNotFoundError: No module named 'src'` 발생. 원인: `from src.stage1_layout import ...` 구문이 직접 실행 시 sys.path 에 프로젝트 루트가 없음.
+    - **해결**: Task #92 (`pipeline.py` bootstrap) 와 동일 패턴 적용:
+      ```python
+      _PROJECT_ROOT_BOOT = Path(__file__).resolve().parents[1]
+      if str(_PROJECT_ROOT_BOOT) not in sys.path:
+          sys.path.insert(0, str(_PROJECT_ROOT_BOOT))
+      ```
+    - **적용 파일**:
+      - `src/prepare_vlm_dataset.py` (Phase 16a, 2026-05-05)
+      - `src/auto_fill_numerical_gt.py` (신규, 2026-05-05)
+    - **★ 후속 적용 권장**: `src/validate/check_*.py` 9개 파일 (`from src.validate.common import ...`) — 사용 시점에 일괄 적용
+    - **★ 박제 (절대 금지)**: PyPI 의 `src==0.0.7` 은 본 프로젝트와 무관한 외부 패키지. `pip install src` / `uv pip install src` 절대 실행 X — `requirements.txt` / `pyproject.toml` 에 `src` 추가 X.
+    - **상세 박제**: `history.md §A.12.9` + `docs/KNOWN_LIMITATIONS.md §4.3, §4.4`
+
+50. **D-050 (Tesseract OCR 도면 patch 본질적 한계 — Phase 16a, ★ Critical, 2026-05-05)**
+    - **발견**: Phase 16a `prepare_vlm_dataset.py --ocr-prefill` 표본 500 dry-run.
+    - **현상** (Pytesseract `--psm 6` + `kor+eng+rus+jpn`):
+      - tolerance regex 매칭률: **0%** (OCR 출력에 `±` 기호 자체가 없음)
+      - GDT symbol 매칭률: **0%** (의미 있는 텍스트 X — 예: `'더'`, `'80000'`, `''`)
+      - Roughness Ra 매칭률: **30%** (Ra 키워드 OCR 인식 거의 안 됨)
+      - Measure nominal 매칭률: **62.2%** (first numeric 추출만 안정적)
+    - **본질**: 도면 patch 의 작은 글자 (10~14 px) + 한자/일본어/한글 혼재 → Tesseract 한계. regex 보강 효과 ≈ 0.
+    - **OCR hint 노이즈 표본**: `'020'` (정상), `'on'` (오인식), `'ーーの40 ['` (일본어 노이즈), `'„23 „|'` (특수문자 노이즈), `''` (빈 문자열).
+    - **영향**: Phase 16b 1차 baseline 의 학습 데이터 GT 품질 ↓↓ (특히 GDT / Roughness).
+    - **★ 후속 옵션** (우선순위 순):
+      1. **(권장)** 검수 도구 작성 + 사람 검수 (Phase 17 후, ~3일)
+      2. PaddleOCR-VL 을 patch OCR 에 활용 (Tesseract 대체 실험)
+      3. 도메인 특화 OCR 모델 fine-tune (long-term)
+    - **상세 박제**: `docs/KNOWN_LIMITATIONS.md §4.1` (★ 핵심) + `history.md §A.12.9`
+
+51. **D-051 (Phase 16b 1차 baseline 정의 — Measure-only, 2026-05-05)**
+    - **정책**: Phase 16b Donut numerical fine-tune 의 ★ **1차 baseline 은 Measure nominal extraction 에 한정**.
+    - **데이터 분포** (Phase 16a 표본 500 기준):
+      | 클래스 | 비중 | Auto-fill rate | 학습 가능 sample (표본 500 → 전체 ~13,000 환산) |
+      |---|---|---|---|
+      | Measure | 86.2% | 62.2% | ~7,000 ★ |
+      | Roughness | 11.2% | 30.4% | ~440 (제한적) |
+      | GDT | 2.6% | 0.0% | 0 ★ |
+    - **근거**:
+      - Stage 2 라벨 단계의 GDT 부족 (KNOWN_LIMITATIONS §2.1) + Tesseract OCR 한계 (D-050) 의 결합
+      - GDT 학습 사실상 불가 — noisy GT 로 포함되지만 학습 효과 기대 X
+      - Measure nominal 학습은 의미 있음 (Donut 도메인 적응)
+    - **Phase 17 e2e 평가 정책**:
+      - Stage 3-N edit_distance 기준 (D-013) 부분 PASS 인정
+      - 종합 점수에 Stage 3-N 자리 채움 → 후속 개선 우선순위 정량화
+    - **★ 후속 (Phase 18+)**:
+      - GDT crop ~500 추가 라벨링 + 검수
+      - Stage 3-N 재학습 (full GT)
+    - **관련 파일**:
+      - `src/auto_fill_numerical_gt.py` (★ 신규 452 lines)
+      - `configs/donut_numerical.yaml` (학습 설정)
+      - `outputs/auto_fill_numerical_report.md` (Phase 16a 완료 후 생성)
+    - **상세 박제**: `docs/KNOWN_LIMITATIONS.md §4.2` + `history.md §A.12.9`
+
+---
+
+## 11.6 D-038 stage1_fp_notes — Phase 15d 본격 실행 대상 (★ 박제, 2026-05-04)
+
+D-038 1차 Donut DocVQA Rescue 4% 실패 → ★ **PaddleOCR-VL-1.5 backend 재실행** 예정.
+
+### 입력 자산
+
+```
+outputs/skip_lists/stage1_fp_notes.txt
+# SKIP reason: stage1_fp_notes
+# Count: 23
+# Source: CVAT XML SKIP 라벨
+```
+
+**구성**:
+- **CAD_Drawing219**: 14개 PMI crop (PMI_006 ~ PMI_024)
+- **sample_01266**: 9개 PMI crop (PMI_018, 019, 024, 038, 039, 071, 075, 083, 085)
+- 모두 PMI 영역으로 분류됐지만 **실제는 일반 주석 (Notes) 영역** — Stage 1 false positive
+
+### Phase 15d 작업 흐름
+
+1. `data/stage1_fp_notes_crops/` 디렉토리 생성 + 23개 PMI crop 복사
+2. PaddleOCR-VL OCR 실행:
+   ```bash
+   python src/stage3_paddleocr_zero_shot_test.py \
+       --samples-dir data/stage1_fp_notes_crops/ \
+       --prompts notes,full_text \
+       --output-json outputs/stage1_fp_notes_paddleocr_eval.json \
+       --output-md   outputs/stage1_fp_notes_paddleocr_eval.md
+   ```
+3. 비교: Donut 4% vs PaddleOCR (★ 목표 80%+)
+4. 통합: 추출 텍스트 → Stage 3-A `general_notes` 필드 입력
+5. 박제: D-038 갱신 (PaddleOCR backend 채택, 결과 PASS/FAIL)
+
+### Phase 15d 임계값 (D-013 대응)
+
+- 23개 중 의미 있는 텍스트 추출 ≥ 80% → PASS
+- 빈 응답 / hallucination ≤ 20%
+- PASS 시 → general_notes 통합, FAIL 시 → 한계 명시 + Stage 3-A 후속 검토
+
+---
+
+## 11.5 외부 자산 가이드 (★ 신규, 2026-05-04)
+
+### Google Drive 백업 (팀 공유)
+
+GitHub 에 포함되지 않은 모든 자산은 [팀 Google Drive](https://drive.google.com/drive/u/0/folders/1YweZCGEe8JbrRBaMSlSS7WIIx-yk_r8M) 에서 관리:
+
+| 자산 | 크기 | 위치 (`<repo>/`) | 우선순위 |
+|---|---|---|---|
+| `dataset.tar.gz` | 1.1 GB | `dataset/` | ★★★ 필수 (저작권) |
+| `IMMA.v1i.yolov11.tar.gz` | 13 MB | `IMMA.v1i.yolov11/` | ★★★ 필수 |
+| `checkpoints.tar.gz` | 7.5 GB | `checkpoints/` | ★★★ 필수 |
+| `data_annotation.tar.gz` | 50 MB | `data/annotation/` | ★★★ 필수 |
+| `articles.tar.gz` | 231 MB | `articles/` | ★ 옵션 |
+| `dataset_excluded.tar.gz` | 5 MB | `dataset_excluded/` | ★ 옵션 |
+
+상세 가이드: [`docs/GOOGLE_DRIVE_ASSETS.md`](./docs/GOOGLE_DRIVE_ASSETS.md) — 다운로드 절차, 검증 체크리스트, 트러블슈팅 포함.
+
+### Phase 15 ~ 18 체크리스트
+
+다음 4개 phase 의 단계별 체크리스트: [`docs/PHASE15_CHECKLIST.md`](./docs/PHASE15_CHECKLIST.md)
+
+- **Phase 15** (~6h): Stage 3-A PaddleOCR-VL-1.5 통합 (15a~15e)
+- **Phase 16** (~8h): Stage 3-N Donut Numerical fine-tune (16a~16d) — ★ V6 D-023 critical
+- **Phase 17** (~4h): Pipeline E2E batch 통합 (17a~17c)
+- **Phase 18** (~4h): Step 8 metrics + Step 9 enrichment (18a~18d)
 
 ---
 

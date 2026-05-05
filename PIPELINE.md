@@ -44,7 +44,7 @@
 - Stage 1: **`Isometric`, `PMI`, `Table`, `Text`, `View`** (5클래스, Roboflow data.yaml 기준).
   코드 내부 매핑 (D-029): `Table → TitleBlock`, `Text → Notes` (Stage 3-A 호환). `Isometric/PMI` 는 신규.
 - Stage 2: `Measure`, `GDT`, `Roughness` (논문 그대로 유지). 입력 영역은 Stage 1 의 `PMI` crop.
-- 도면 언어: **EN / KO / JP / RU / CN** (5개, D-025).
+- 도면 언어: **EN / KO / JP / RU / CN / DE** (6개, D-025 — DE 2026-05-04 추가, ~10장 보유).
 - 도면 종류: 가공도면 + 조립도면 혼재 (D-026, `src/sort_by_drawing_type.py` 로 자동 분류).
 - TB 핵심 필드 (material/quantity) 누락 흔함 (D-027) — Step 9 enrichment 가 보강.
 
@@ -70,10 +70,13 @@
         │                                        │
         ▼ PMI crop (★ Stage 2 입력)              ▼ TitleBlock / Notes crop
 ┌──────────────────────────────────────┐   ┌──────────────────────────────┐
-│ Stage 2: YOLOv11-obb (Annotation)    │   │ Stage 3-A: Alphabetical VLM  │
-│  → Measure / GDT / Roughness         │   │   (Donut, zero-shot)         │
-│     (oriented BBox)                  │   │   → 텍스트/카테고리 JSON       │
-└──────────────────────────────────────┘   └──────────────────────────────┘
+│ Stage 2: YOLOv11-obb (Annotation)    │   │ Stage 3-A: PaddleOCR-VL-1.5  │
+│  ★ 5-Fold Ensemble (D-040)           │   │   (★ D-039 채택, zero-shot)  │
+│  → Measure / GDT / Roughness         │   │   ★ Task: Table Recognition  │
+│     (oriented BBox, D-023 PASS)      │   │     OCR / Spotting / Seal    │
+└──────────────────────────────────────┘   │   ★ D-046 monkey-patch 필수   │
+                                            │   → 텍스트/카테고리 JSON       │
+                                            └──────────────────────────────┘
         │   (각 annotation crop)
         ▼
 ┌──────────────────────────────────────┐
@@ -224,13 +227,33 @@ Drawing/
 - 형식: YOLO obb (`class x1 y1 x2 y2 x3 y3 x4 y4`)
 - **불균형 처리**: Roughness oversampling 또는 class weighting 필요 (seed 데이터 부족)
 
-### 3.3 학습
-- 모델: `yolo11{n,s,m}-obb.pt`
-- 입력 해상도: 1024–1280
-- 회전 augmentation 활성 (도면 회전 텍스트 + PMI crop 회전 대응)
-- 출력 체크포인트: `checkpoints/yolo_obb.pt`
+### 3.3 학습 (★ K-fold CV + Ensemble, D-040)
+- 모델: `yolo11l-obb.pt` (★ K-fold CV 채택)
+- 입력 해상도: 1024
+- 회전 augmentation 강화 (Option C — degrees 30, mixup 0.15, copy_paste 0.3)
+- **5-Fold Cross-Validation** (D-024 group-aware):
+  - 9.0h overnight 학습
+  - mean mAP@0.5 = 0.932 ± 0.062
+  - Best fold = 2 (mAP 0.978)
+- 출력: `checkpoints/yolo_obb_runs/yolo_obb_v3_kfold_{0..4}/weights/best.pt`
 
-### 3.4 추론 출력
+### 3.4 ★ Ensemble 추론 (D-040, 2026-05-04)
+
+**5-Fold Ensemble** (`src/ensemble_predict.py`):
+- 5개 fold detection concatenate → class-wise rotated NMS (`iou_nms=0.5`)
+- D-023 PASS (Measure/GDT/Roughness missing = 0.000, drawing_recall = 1.000)
+- Trade-off: Recall +0.101 (Measure) / Precision -0.266 — D-023 만족 우선
+
+**Pipeline 통합** (`src/pipeline.py`):
+- `use_ensemble=True` (default, D-040)
+- 5 fold lazy-load + class-wise NMS
+- model_versions: `"5fold_ensemble (kfold_0..4, iou_nms=0.5, conf=0.25)"`
+
+**ultralytics 호환성** (★ NMS resolver):
+- ultralytics 8.3+ 에서 `nms_rotated` 위치 변경 → 다중 import 경로 + manual shapely fallback
+- `_resolve_nms_rotated()` → 자동 감지
+
+### 3.5 추론 출력
 ```json
 {
   "pmi_crop_id": "crop_0",
@@ -244,24 +267,132 @@ Drawing/
 
 ---
 
-## 4. Stage 3-A — Alphabetical VLM (Donut, Zero-shot)
+## 4. Stage 3-A — PaddleOCR-VL-1.5 (★ D-039, 2026-05-03 채택 — Donut 폐기)
 
 ### 4.1 목적
-Title Block / Notes 영역 이미지를 입력받아 **카테고리/자유 텍스트** JSON 추출.
+Title Block / Notes 영역 이미지를 입력받아 **다국어 OCR + structured 텍스트** JSON 추출.
 
-### 4.2 모델
-- 베이스: `naver-clova-ix/donut-base-finetuned-cord-v2` 또는 `donut-base`
-- **Fine-tuning 없음** (논문 기준): 자유 형식 텍스트라 schema 불일치 → zero-shot 사용
-- 입력: Stage 1에서 crop된 Title Block / Notes 패치
-- 출력: 자유 형식 JSON (drawing number, material, scale, tolerance notes …)
+### 4.2 모델 변경 이력 (★ 박제)
 
-### 4.3 처리 흐름
-1. Stage 1 결과에서 Title Block / Notes crop
-2. Donut tokenizer prompt: `<s_titleblock>` / `<s_notes>`
-3. Generate → JSON parse
-4. 실패 시 raw text fallback
+| 버전 | 모델 | 결과 | 박제 |
+|---|---|---|---|
+| 1차 | Donut DocVQA zero-shot | 4% 성공 (실질 실패) | D-018 폐기 |
+| **★ 2차** | **`PaddlePaddle/PaddleOCR-VL-1.5`** | OmniDocBench 94.5% (SOTA) | D-039 채택 |
 
-> 논문 성능: F1 0.672 (Title Block 0.533, Notes 0.810). Title Block은 한계 있음 → 후처리(정규식/룰)로 보정 가능.
+**선정 사유 (8가지)**:
+1. OmniDocBench 94.50% (DeepSeek-OCR-2 91.09% 대비 +3.41%)
+2. 0.9B params → RTX 5080 16GB 에서 Stage 2 동시 로드 가능 (3.29 GB)
+3. Table TEDS 92.76% — Title Block 표 처리
+4. Formula CDM 94.21% — Notes 수식 정확
+5. Seal Recognition 1.5 신규 — 도장/검도 도장 처리
+6. CJK industry-leading — 일/한/중 도면 처리
+7. 100+ 다국어 — DE/RU 포함 6개 언어 모두 지원 (D-025)
+8. 라이선스 Apache 2.0
+
+### 4.3 ★ Critical Workaround (D-042 / D-046)
+
+**D-042 — `text_config` monkey-patch** (transformers 5.x 호환성):
+```python
+from transformers import AutoConfig, AutoProcessor, AutoModelForImageTextToText
+import torch
+
+config = AutoConfig.from_pretrained("PaddlePaddle/PaddleOCR-VL-1.5", trust_remote_code=True)
+if not hasattr(config, "text_config") and hasattr(config, "get_text_config"):
+    config.text_config = config.get_text_config()    # ★ 1줄 patch 필수
+
+model = AutoModelForImageTextToText.from_pretrained(
+    "PaddlePaddle/PaddleOCR-VL-1.5",
+    config=config,
+    torch_dtype=torch.bfloat16,                       # ★ D-046: bfloat16 (NOT float16)
+).to("cuda").eval()
+```
+
+**D-046 — README 권장 호출 방식** (NOT 자연어 prompt):
+```python
+# ★ Task keyword (자연어 prompt → 모델 confuse)
+TASKS = {
+    "table":    "Table Recognition:",   # ★ TitleBlock
+    "ocr":      "OCR:",                 # Notes / 전체 텍스트
+    "spotting": "Spotting:",            # 텍스트 + bbox
+    "formula":  "Formula Recognition:", # 수식
+    "seal":     "Seal Recognition:",    # 도장 (D-038 stage1_fp_table)
+}
+
+messages = [{
+    "role": "user",
+    "content": [
+        {"type": "image", "image": image},   # ★ image 직접 binding
+        {"type": "text", "text": TASKS["table"]},
+    ]
+}]
+
+# ★ apply_chat_template 통합 호출 (NOT processor(images=, text=) 분리)
+inputs = processor.apply_chat_template(
+    messages, add_generation_prompt=True,
+    tokenize=True, return_dict=True, return_tensors="pt",
+    images_kwargs={
+        "size": {
+            "shortest_edge": processor.image_processor.min_pixels,
+            "longest_edge":  1280 * 28 * 28,    # ~1M pixels
+        }
+    },
+).to(model.device)
+
+# ★ Pure generate (D-045 의 repetition_penalty 등 모두 폐기)
+outputs = model.generate(**inputs, max_new_tokens=512)
+
+# ★ Input 부분 슬라이스 + processor.decode
+result = processor.decode(
+    outputs[0][inputs["input_ids"].shape[1]:],
+    skip_special_tokens=True,
+)
+```
+
+### 4.4 출력 형식
+
+| Task | 출력 형식 | 후처리 |
+|---|---|---|
+| `Table Recognition:` | **OTSL token** (`<fcel>`/`<lcel>`/`<nl>`) — D-047 | markdown / JSON 변환 필요 |
+| `OCR:` | plain text (다국어) | numbered list parse (Notes) |
+| `Spotting:` | text + bbox | bbox 좌표 활용 |
+
+### 4.5 환경 — 별도 venv (★ D-042)
+
+Phase 14 ultralytics venv 와 분리:
+```bash
+uv venv --python 3.10 .venv-paddleocr
+source .venv-paddleocr/bin/activate
+uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+uv pip install "transformers==5.0.0" accelerate sentencepiece protobuf einops pillow
+```
+
+### 4.6 Phase 15b 평가 결과 (★ 박제)
+
+| 회차 | 결과 | 박제 |
+|---|---|---|
+| 1차 (자연어 prompt) | degenerate 무한 반복 (95%) | D-045 |
+| 2차 (D-045 fix) | layout token 누출 + emoji hallucination | — |
+| 3차 (D-046 fix) | en/ru 부분 성공 (avg char acc ~0.50) | D-047 |
+| 4차 (Real-ESRGAN, 진행 중) | TBD | TBD |
+
+**임계값 (D-013)**: char acc ≥ 0.85, F1 ≥ 0.80, hallucination ≤ 0.05.
+
+### 4.7 차후 검토
+
+- 4차 (Real-ESRGAN) 결과 PASS 시 → Stage 3-A 백엔드 교체 (Phase 15c)
+- FAIL 시 → fine-tune 또는 폴백 (Qwen3-VL / DeepSeek-OCR-3)
+- vLLM 도입 (Phase 17 batch 시) — PaddleOCR-VL 공식 지원
+- Real-ESRGAN 외 OTSL → markdown 후처리 추가 (Phase 15c)
+
+---
+
+## 4-old. (구) Stage 3-A — Donut Alphabetical (★ D-039 폐기)
+
+> Donut DocVQA zero-shot 4% 성공 (실질 실패) → D-039 로 PaddleOCR-VL-1.5 채택. 본 절 참고용.
+
+- 베이스: `naver-clova-ix/donut-base-finetuned-cord-v2`
+- F1 0.672 (Title Block 0.533, Notes 0.810)
+- 다국어 (CJK / DE / RU) 처리 한계 → 폐기
 
 ---
 
@@ -270,16 +401,65 @@ Title Block / Notes 영역 이미지를 입력받아 **카테고리/자유 텍�
 ### 5.1 목적
 Stage 2에서 OBB로 crop된 패치(Measure / GD&T / Roughness)를 **schema 기반 수치 JSON**으로 변환.
 
-### 5.2 학습 설정 (논문 재현)
-- 데이터: 약 13,000 image-text 쌍
-- 분할: 70 / 20 / 10 (train / val / test)
-- GPU: RTX 5090 (또는 사용 가능한 GPU)
+### 5.2 학습 데이터 준비 흐름 (★ Phase 16a/b, 2026-05-06)
+
+```
+Phase 16a — prepare_vlm_dataset.py numerical
+  ├─ Stage 1 inference (yolo_det.pt) → View / TitleBlock / Notes crop
+  ├─ Stage 2 inference (yolo_obb.pt 단일 fold) → Measure / GDT / Roughness OBB
+  ├─ perspective-warp de-rotation
+  ├─ Pytesseract OCR (--ocr-prefill) → _review.ocr_hint / ocr_numeric
+  └─ JSON 템플릿 + manifest.csv (group_key 포함, D-024)
+
+Phase 16a 결과 (500 도면, 2026-05-06):
+  - 11,470 region 생성 (도면당 평균 22.94)
+  - 처리 시간: 24분 04초
+
+★ auto_fill_numerical_gt.py (D-049 sys.path bootstrap 적용)
+  ├─ Measure: ocr_numeric → nominal 매핑, tolerance regex (±X / +X/-Y)
+  ├─ GDT: 14개 symbol pattern + datum letter 추출
+  ├─ Roughness: Ra regex + first numeric fallback
+  └─ _review.completed = True / auto_filled / fill_method 박제
+
+Auto-fill 결과 (Phase 16a 직후):
+  - Total: 11,470 → Filled 5,784 (50.4%)
+  - Measure: 8,750 → 5,381 (61.5%) ★ baseline 가능
+  - GDT:        531 →     1 (0.2%)  ★ 학습 사실상 불가 (D-051)
+  - Roughness: 2,189 →   402 (18.4%)
+
+Phase 16b — stage3_numerical.py train
+  └─ configs/donut_numerical.yaml 기반 학습 시작
+```
+
+### 5.3 학습 설정 (논문 재현 + cfg 파일 통합)
+
+**CLI**:
+```bash
+python src/stage3_numerical.py train \
+    --cfg configs/donut_numerical.yaml \
+    --device 0
+# 모든 hyperparameter 는 cfg 파일에 정의
+```
+
+**configs/donut_numerical.yaml 핵심**:
+- 데이터: `data/vlm/numerical/` (Phase 16a 출력)
+- 학습 가능 sample (completed=True): 5,784
+- 분할: 70 / 20 / 10 (train ~4,049 / val ~1,156 / test ~579)
 - 에포크: 30
 - Optimizer: AdamW
 - LR scheduler: cosine decay, init `1e-6`, no warm-up
-- Batch size: 4
+- Batch size: 4 (RTX 5080 16GB 대응)
 - Precision: FP16 mixed
+- gradient_checkpointing: true
 - 출력: `checkpoints/donut_numerical/`
+
+### 5.4 ★ 1차 baseline 정의 (D-051)
+
+- **★ Phase 16b 1차 baseline = Measure nominal extraction only**
+- GDT 학습 사실상 불가 (auto-fill 0%, sample 1/531)
+- Roughness 제한적 (auto-fill 18.4%)
+- Phase 17 e2e 평가에서 Stage 3-N 자리만 채움 → 후속 개선 우선순위 정량화
+- 후속 (Phase 18+): 검수 도구 + 사람 검수 + GDT crop 추가 라벨링 → 재학습
 
 ### 5.3 출력 스키마 예시
 ```json
@@ -351,3 +531,89 @@ Stage 2에서 OBB로 crop된 패치(Measure / GD&T / Roughness)를 **schema 기�
 | 2 | Stage 1 학습/추론 스크립트 | `src/stage1_layout.py` | ✅ |
 | 3 | Stage 2 학습/추론 스크립트 | `src/stage2_annotation.py` | ✅ |
 | 4 | VLM 학습 데이터 자동 생성 | `src/prepare_vlm_dataset.py` (라벨
+---
+
+## 5. Stage 3-N — Numerical VLM (Donut, Fine-tuned, ★ Phase 16a/b)
+
+### 5.1 목적
+Stage 2에서 OBB로 crop된 patch (Measure / GD&T / Roughness)를 **schema 기반 수치 JSON**으로 변환.
+
+### 5.2 학습 데이터 준비 흐름 (Phase 16a/b, 2026-05-06)
+
+```
+Phase 16a — prepare_vlm_dataset.py numerical
+  ├─ Stage 1 inference (yolo_det.pt) → View / TitleBlock / Notes crop
+  ├─ Stage 2 inference (yolo_obb.pt 단일 fold) → Measure / GDT / Roughness OBB
+  ├─ perspective-warp de-rotation
+  ├─ Pytesseract OCR (--ocr-prefill) → _review.ocr_hint / ocr_numeric
+  └─ JSON 템플릿 + manifest.csv (group_key 포함, D-024)
+
+Phase 16a 실측 결과 (2026-05-06, 500 도면):
+  - 처리 시간: 24분 04초
+  - 산출 region: 11,470 (도면당 평균 22.94)
+
+★ auto_fill_numerical_gt.py (D-049 sys.path bootstrap 적용)
+  ├─ Measure: ocr_numeric → nominal 매핑, tolerance regex (±X / +X/-Y)
+  ├─ GDT: 14개 symbol pattern + datum letter 추출
+  ├─ Roughness: Ra regex + first numeric fallback
+  └─ _review.completed = True / auto_filled / fill_method 박제
+
+Auto-fill 실측 결과:
+  - Total: 11,470 → Filled 5,784 (50.4%)
+  - Measure: 8,750 → 5,381 (61.5%) ★ baseline 가능
+  - GDT:        531 →     1 ( 0.2%) ★ 학습 사실상 불가 (D-051)
+  - Roughness: 2,189 →   402 (18.4%)
+
+Phase 16b — stage3_numerical.py train
+  └─ configs/donut_numerical.yaml 기반 학습 시작 (overnight ~6h)
+```
+
+### 5.3 학습 설정 (cfg 파일 통합)
+
+**CLI**:
+```bash
+python src/stage3_numerical.py train \
+    --cfg configs/donut_numerical.yaml \
+    --device 0
+# 모든 hyperparameter 는 cfg 파일에 정의
+```
+
+**configs/donut_numerical.yaml 핵심**:
+- 데이터: `data/vlm/numerical/` (Phase 16a 출력)
+- 학습 가능 sample (completed=True): 5,784
+- 분할: 70 / 20 / 10 (train ~4,049 / val ~1,156 / test ~579)
+- 에포크: 30 / Batch 4 / LR 1e-6 cosine decay / no warm-up
+- Precision: FP16 mixed + gradient_checkpointing (RTX 5080 16GB 대응)
+- 출력: `checkpoints/donut_numerical/`
+
+### 5.4 ★ 1차 baseline 정의 (D-051)
+
+- **★ Phase 16b 1차 baseline = Measure nominal extraction only**
+- GDT 학습 사실상 불가 (auto-fill 0%, sample 1/531) — Stage 2 라벨 부족 (KNOWN_LIMITATIONS §2.1) + Tesseract OCR 한계 (D-050) 의 결합
+- Roughness 제한적 (auto-fill 18.4%)
+- Phase 17 e2e 평가에서 Stage 3-N 자리만 채움 → 후속 개선 우선순위 정량화
+- 후속 (Phase 18+): 검수 도구 + 사람 검수 + GDT crop 추가 라벨링 → 재학습
+
+### 5.5 출력 스키마 예시
+
+```json
+{"type": "Measure", "nominal": 25.0, "tolerance": {"upper": 0.05, "lower": -0.05}, "unit": "mm"}
+{"type": "GDT", "symbol": "⏤", "tolerance": 0.02, "datum": ["A", "B"]}
+{"type": "Roughness", "Ra": 1.6, "unit": "μm"}
+```
+
+### 5.6 ★ 한계 박제 (docs/KNOWN_LIMITATIONS.md §4 참조)
+
+| ID | 한계 | 영향 |
+|---|---|---|
+| D-049 | sys.path bootstrap (해결) | prepare_vlm_dataset / auto_fill 직접 실행 가능 |
+| D-050 | Tesseract OCR 본질적 한계 (Critical) | tolerance/GDT/Ra 인식 0% — regex 보강 효과 ≈ 0 |
+| D-051 | 1차 baseline = Measure-only | Phase 17 e2e 자리 채움 + 후속 정량화 |
+
+---
+
+## 6. Pipeline 통합 (Phase 17 e2e — 2026-05-06 이후)
+
+`pipeline.py` 가 Stage 1 → Stage 2 → Stage 3-A → Stage 3-N → Stage 4 (JSON Merger) → Step 9 Enrichment 통합 실행.
+
+자세한 흐름은 `outputs/workflow_diagram_v4.png` 참조.

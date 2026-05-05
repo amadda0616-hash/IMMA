@@ -61,7 +61,7 @@ v1 (Step 9 미포함): [`workflow_diagram.png`](./workflow_diagram.png) / [`work
 | CUDA | 12.4+ |
 | Python | 3.10+ |
 | Workspace | `/mnt/c/Users/user/github/Drawing` (WSL2 마운트) |
-| 도면 언어 | **EN / KO / JP / RU / CN** (도면 1장 = 단일 언어 가정, D-025) |
+| 도면 언어 | **EN / KO / JP / RU / CN / DE** (도면 1장 = 단일 언어 가정, D-025 — DE 2026-05-04 추가) |
 
 ---
 
@@ -75,7 +75,7 @@ v1 (Step 9 미포함): [`workflow_diagram.png`](./workflow_diagram.png) / [`work
 |---|---|
 | 적재 경로 | `dataset/` |
 | 수량 | **5,839 JPG** (2026-04-28 갱신, +1,252 추가) |
-| 언어 분포 | **EN / KO / JP / RU / CN** 혼합 (도면 1장 = 단일 언어, D-025) |
+| 언어 분포 | **EN / KO / JP / RU / CN / DE** 혼합 (도면 1장 = 단일 언어, D-025) — DE ~10장 (2026-05-04) |
 | TitleBlock 분포 | 있음 / 없음 혼합 |
 | **사전 증강** | **일부 이미지 뒤집기 + 회전 적용** (사용자 사전 처리) |
 | 논문 대비 | Stage 1: 5.8× / Stage 2: 4.2× — 양 충분 |
@@ -191,7 +191,8 @@ v1 (Step 9 미포함): [`workflow_diagram.png`](./workflow_diagram.png) / [`work
 |---|---|---|
 | **Day 1 ✅ DONE** (2026-04-30 ~ 2026-05-02) | Stage 2 PMI crop 라벨링 (CVAT 로컬, **844 crops**) | **★ 라벨링 완료**: Stage2_PMI_v3_upscaled3x_844 (upscale 3x). 전체 1026 박스 (Measure 555 / Roughness 106 / GDT 88 / SKIP 277). Frame-level SKIP 32.82% (>30% 임계 → Stage 1 V.B 보강 트리거). v1→v2→v3 padding 진화 (D-037). **D-038 Notes Rescue 박제**: SKIP 중 stage1_fp_notes 23개 → Day 2 Donut OCR 처리 예정. extract_skip_list.py + rescue_misclassified_notes.py 작성 완료 (Day 2 transformers 설치 후 실행). |
 | **Day 2 IN_PROGRESS** (2026-05-03) | Phase 2 마무리 + Stage 2 학습 + Stage 3-A 모델 선정 | (1) ✅ uv pip install (5.94s). transformers 5.6.2 / torch cu128 (2) ⚠ Donut DocVQA Rescue 4% → **★ D-039 박제: PaddleOCR-VL-1.5 채택** (0.9B, OmniDocBench 94.5%, CJK SOTA, 8가지 사유). Stage 3-N Donut 유지 + V6 검증 (3) ✅ **Phase 7 완료** — CVAT YOLO OBB export 검증 통과 (844 frames / 1026 boxes / 8-point OBB) (4) Phase 8 정책 결정 — Option B (Stage 2 학습 제외) / Copy / 80-20 / Rescue α (stage1_fp_notes 23개만, stage1_fp_table은 Stage 1 Table 클래스 활용) (5) Phase 8~11 통합 스크립트 작성 예정 |
-| **Day 3 IN_PROGRESS** (2026-05-04) | Stage 2 K-fold + Stage 3 통합 + Step 7~8 | (1) ✅ **K-fold 학습 완료** (5 folds × 9.0h, mean mAP 0.932 ± 0.062, Best Fold = 2 mAP 0.978) (2) ✅ V3-B 단일 모델: Measure missing 0.101 ❌ (D-023 FAIL) (3) ✅ **★ D-040 박제 — 5-Fold Ensemble 채택**: `src/ensemble_predict.py` 작성 (NMS resolver + manual shapely fallback) → **D-023 PASS** (Measure/GDT/Roughness missing = 0.000, drawing_recall = 1.000) (4) ✅ pipeline.py 통합 (`use_ensemble=True` default, 5 fold lazy load) (5) **다음**: PaddleOCR-VL-1.5 통합 (Stage 3-A) → Donut Numerical fine-tune ~6h → V6 → V7 → Step 8 metrics |
+| **Day 3 DONE** (2026-05-04) | Stage 2 K-fold + Stage 3-A 환경 + GitHub | **Phase 14**: K-fold 학습 (mean mAP 0.932), **★ D-040 5-Fold Ensemble** → **D-023 PASS**, pipeline.py 통합, smoke test, **★ D-041 GitHub IMMA push**. **Phase 15a**: `.venv-paddleocr` venv, **★ D-042 monkey-patch**, install_check PASS (0.91B / 39.7s / 2.26s). **Phase 15b 작성**: **★ D-043 도메인 한계** + sample 5장 + **★ D-044 23 필드 schema**. |
+| **Day 4 IN_PROGRESS** (2026-05-05 ~ 06) | Phase 15b 4차 + Phase 16a 완료 + Phase 16b 학습 시작 | **(전반)** Phase 15b 1~4차 → **★ D-045/D-046/D-047** + **★ D-048 ja_drawing 110 region 분리**. **(후반 ★ 갱신)** Phase 16a 완료 (24분 04초, **11,470 region**, manifest.csv ✅) + **★ D-049 sys.path bootstrap** + **★ D-050 Tesseract OCR 한계** (tolerance/GDT/Ra 인식 0%) + **★ D-051 1차 baseline = Measure-only** + Auto-fill 50.4% (Measure 61.5% / GDT 0.2% / Roughness 18.4%) + **★ 5/5 기준 통과** (#5 학습 시작 후) → **Phase 16b overnight 학습 시작** (~06:00 종료 예상). **★ 신규 박제**: `docs/KNOWN_LIMITATIONS.md` (376 lines) + `outputs/workflow_diagram_v4.png` + `outputs/IMMA_progress_report_v4.docx` (동료 공유용). 다음 날 아침: V6 검증 + ja 영역별 Stage 3-A 평가 + Phase 17 e2e 진입 검토. |
 | **차후** | Pre-annotation Phase 2 (Version B 학습) | 라이선스 + 비용 정리 후, D-035. **★ Stage 1 V.B 학습 시 PMI false positive 보강** (Day 1 SKIP 33% > 30% 임계). |
 
 ---
@@ -466,6 +467,24 @@ python src/ensemble_predict.py predict \
     --output outputs/sample_pred.json
 ```
 
+### 6.3.1 ★ Stage 3-A 환경 검증 (Phase 15a, D-042)
+
+```bash
+# 별도 venv (Phase 15 전용 — Phase 14 ultralytics 와 분리)
+source .venv-paddleocr/bin/activate
+
+# PaddleOCR-VL-1.5 환경 자동 검증 (★ monkey-patch 자동 적용)
+python src/stage3_paddleocr_install_check.py
+
+# 빠른 모드 (inference 생략)
+python src/stage3_paddleocr_install_check.py --skip-inference
+
+# 결과: outputs/stage3a_install_check.json
+# 종료 코드: PASS = 0, FAIL = 1
+```
+
+상세: [`docs/modules/stage3_paddleocr_install_check.md`](./docs/modules/stage3_paddleocr_install_check.md) / [`docs/PHASE15_CHECKLIST.md`](./docs/PHASE15_CHECKLIST.md).
+
 ### 6.4 Step 5 — Stage 3-A (Donut Alphabetical, zero-shot)
 
 ```bash
@@ -613,7 +632,7 @@ Step 9 출력 형태를 보여주는 fixture 10건. 모두 JSON 유효성 통과
 |---|---|
 | D-001 | 아키텍처: Khan 2025 논문 그대로 (YOLOv11-det + YOLOv11-obb + Donut x2) |
 | D-009 | Stage 1·2는 언어 무관 단일 모델 (YOLO는 시각 패턴 학습) |
-| D-010 / D-013 / D-025 | 도면 = 단일 언어 (KO/EN/JP/RU/**CN** 5개 중 하나). 언어 분류는 차후 |
+| D-010 / D-013 / D-025 | 도면 = 단일 언어 (KO/EN/JP/RU/CN/**DE** 6개 중 하나). 언어 분류는 차후 |
 | D-012 | Stage 2 OBB crop 은 perspective-warp de-rotation 적용 (Donut 정확도 결정적) |
 | D-014 | 작업환경 Ubuntu WSL2 + Antigravity 확정 |
 | D-015 | FCF 컴파트먼트 분리 기본 미수행 (GD&T F1 < 0.85 시 검토) |

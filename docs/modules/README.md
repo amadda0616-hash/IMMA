@@ -21,6 +21,8 @@
 | [extract_skip_list.md](./extract_skip_list.md) | **★ SKIP 라벨 분석** (reason 카테고리 분리, D-038 rescue 입력, 신규 2026-05-02) | 5.8 | ✅ |
 | [rescue_misclassified_notes.md](./rescue_misclassified_notes.md) | **★ Notes Rescue** (D-038 구현, Donut OCR, 신규 2026-05-02) | 5.9 | ✅ |
 | [stage3_alphabetical.md](./stage3_alphabetical.md) | Donut Alphabetical (zero-shot) | 5 | ✅ |
+| [stage3_paddleocr_install_check.md](./stage3_paddleocr_install_check.md) | **★ Phase 15a — PaddleOCR-VL-1.5 환경 검증** (D-042 monkey-patch, 신규 2026-05-04) | 5a | ✅ |
+| [stage3_paddleocr_zero_shot_test.md](./stage3_paddleocr_zero_shot_test.md) | **★ Phase 15b — 다국어 zero-shot 평가** (TitleBlock 23 필드 + Notes + full_text, 신규 2026-05-04) | 5b | ✅ |
 | [stage3_numerical.md](./stage3_numerical.md) | Donut Numerical (fine-tune + 추론) | 6 | ✅ |
 | [prepare_vlm_dataset.md](./prepare_vlm_dataset.md) | VLM image-text pair 자동 시드 생성 | 4 | ✅ |
 | [pipeline.md](./pipeline.md) | end-to-end JPG → 통합 Structured JSON (**★ D-040 Stage 2 ensemble default**) | 7 | ✅ |
