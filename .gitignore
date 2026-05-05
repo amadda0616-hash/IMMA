@@ -107,3 +107,17 @@ reports/**
 
 # --- Notebook ---
 .ipynb_checkpoints/
+
+# --- 백업 / 임시 파일 (★ 2026-05-06 추가) ---
+*.bak*
+*.tmp
+*.pid
+
+# --- outputs 학습 로그 + 산출물 (PNG/DOCX 등 큰 파일) ---
+# md / json / txt 통계 리포트는 commit 가능 (작음)
+outputs/*.log
+outputs/*.pid
+outputs/*.png
+outputs/*.docx
+outputs/*.pptx
+outputs/_pipeline_tmp/
