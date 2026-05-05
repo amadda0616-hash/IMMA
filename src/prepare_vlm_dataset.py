@@ -70,6 +70,15 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+# Project root bootstrap — allow `python src/prepare_vlm_dataset.py` direct
+# execution. (Without this, lazy `from src.stage1_layout import ...` /
+# `from src.stage2_obb_view import ...` calls fail with ModuleNotFoundError
+# because src/ parent is not on sys.path.)
+# Same pattern as src/pipeline.py (Task #92).
+_PROJECT_ROOT_BOOT = Path(__file__).resolve().parents[1]
+if str(_PROJECT_ROOT_BOOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT_BOOT))
+
 # ---------------------------------------------------------------------------
 # Paths / constants
 # ---------------------------------------------------------------------------
