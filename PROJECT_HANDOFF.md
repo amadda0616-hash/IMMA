@@ -1611,3 +1611,59 @@ python -m src.validate.check_step1_5_sorter \
     - **상세 박제**: `history.md §A.12.11`
 
 ---
+
+55. **D-055 (V6 검증 결과 — D-051 baseline 가설 검증, ★ Phase 17 진입 결정, 2026-05-06)**
+    - **흐름**: `extract_test_set_for_v6.py` (group-aware split seed=42, completed=True 593 region) → `stage3_numerical.py batch --device cuda:0` (18분, 1.85초/region) → `check_stage3n_numerical.py`
+    - **★ V6 결과** (Overall FAIL):
+      | 항목 | 결과 | 임계 | 판정 |
+      |---|---|---|---|
+      | field_f1[Measure] | **0.3786** | ≥0.90 | ❌ FAIL (논문 0.923 의 41%) |
+      | numerical_accuracy ★ | **0.0343** | ≥0.95 | ❌ FAIL (★ nominal ±0.01mm 매칭 3.4%) |
+      | tolerance_match | 0.9982 | ≥0.90 | ✅ PASS (null 도 매칭) |
+      | hallucination_rate ★ | **0.7201** | ≤0.10 | ❌ FAIL (★ 논문 0.067 의 **11배**) |
+      | empty_rate | 0.0000 | ≤0.05 | ✅ PASS (응답 정상) |
+      | Roughness Ra_accuracy / F1 | 0.0000 | — | WARN (D-051 일치, 학습 X) |
+    - **★ D-051 가설 검증**:
+      - ✅ "학습 자체 진행 가능" — loss plateau 0.92 / empty 0%
+      - ✅ "구조 학습 OK" — tolerance_match 99.82% (JSON 구조 + null 패턴)
+      - ❌ "정확한 값 예측" — numerical_accuracy 3.43% (★ 사실상 사용 불가)
+      - ❌ "Hallucination 제어" — 72% (★ 매우 심각)
+    - **원인** (★ D-050 검증):
+      - Tesseract OCR 노이즈 GT 그대로 학습 → 모델이 노이즈 패턴 학습
+      - Auto-fill regex 만으로는 정확도 baseline 확보 불가
+      - 검수 도구 / 사람 검수 우회의 결과
+    - **결정** (사용자 판단, 2026-05-06):
+      - ★ **Phase 17 e2e 진입** — D-051 의도대로 자리 채움 + 후속 우선순위 정량화
+      - 검수 도구 작성 (Phase 18) 은 KNOWN_LIMITATIONS Critical 1순위로 우선화
+    - **박제 산출물**:
+      - `src/extract_test_set_for_v6.py` (★ 신규 ~110 lines)
+      - `outputs/stage3n_baseline_v1_predictions/` (593 *.num.json + manifest.json)
+      - `reports/2026-05-06_stage3n.{html,json}`
+    - **상세 박제**: `history.md §A.12.12` + `docs/KNOWN_LIMITATIONS.md §4 (구체 수치 반영)`
+
+56. **D-056 (Phase 15c — pipeline.py 의 PaddleOCR-VL backend 통합 완료, ★ Resolved, 2026-05-06)**
+    - **배경**: Phase 17 e2e smoke test 시 pipeline.py 가 D-018 Donut DocVQA (폐기) 호출 — D-039 채택 후 통합 미완료. `.venv` (transformers 4.49.0) vs `.venv-paddleocr` (5.0.0) 환경 충돌로 직접 import 불가.
+    - **해결 — Subprocess wrapper (옵션 B)**:
+      - `src/stage3_alphabetical_paddleocr_worker.py` (★ 신규 ~270 lines, `.venv-paddleocr` 실행)
+      - `src/stage3_alphabetical_paddleocr.py` (★ 신규 ~260 lines, `.venv` 실행, pipeline.py import)
+      - `pipeline.py` line 244, 307: 2줄 import 변경
+    - **★ 누적 4개 fix** (★ 통합 PASS 의 핵심):
+      | # | Fix | 증상 | 해결 |
+      |---|---|---|---|
+      | 1 | stderr 파일 redirect | PIPE buffer (~64KB) 가득 → READY signal 못 보냄 → 46분+ deadlock | `stderr=open(stderr_log, 'w')` |
+      | 2 | atexit hook + shutdown | Ctrl+C 시 worker 좀비 (init 입양) | `atexit.register(_worker.shutdown)` + `{"action": "shutdown"}` |
+      | 3 | `images_kwargs` 제거 | `TypeError: merged_typed_dict.__init__() got 'max_pixels'` (PaddleOCR-VL processor strict validation) | `apply_chat_template()` 에서 `images_kwargs` 제거 → processor default |
+      | 4 | 출력 키 mismatch | pipeline `rec["fields"]` / `rec["items"]` 기대 vs worker `rec["title_block"]` / `rec["notes"]` 반환 → 통합 JSON 비어있음 | worker `to_pipeline_record()` 에서 키 변경 + TitleBlock raw text 를 `fields["_raw_text"]` 임시 보존 |
+    - **★ Smoke test 풀 e2e PASS** (2026-05-06 14:43~14:55):
+      - Total 638s (10분 38초): Stage 1 45.7s / Stage 2 5.2s / Stage 3-A 414.7s (8 requests + 모델 로드 99s) / Stage 3-N 172s
+      - title_block 채움 (`_raw_text`: 26 chars OTSL) ✅
+      - Worker 정상 종료 (atexit shut down) ✅
+    - **Worker 직접 호출 검증** — TitleBlock crop 1개:
+      - 풍부한 OTSL 출력: `<fcel>BASE SECTION<fcel>NORMAL<fcel>LEAD<fcel>2.91.37<nl><fcel>TOOTH PROFILE...<fcel>MODULE<fcel>0.92<fcel>OUT DIAMETER<fcel>#8.812.268...`
+      - PaddleOCR-VL OTSL 일치 (D-047)
+    - **★ 발견 — multi-TitleBlock merge 정책 개선 필요**:
+      - pipeline.py line 395 `title_block_out.update({k: v for ... if v})` → 7개 TB 처리 시 마지막 결과가 이전 모두 덮어씀
+      - 후속: confidence-based 선택 또는 모든 raw_text 합침 정책
+    - **상태**: ✅ Resolved — Phase 17 e2e 진입 가능
+    - **상세 박제**: `history.md §A.12.13` + `docs/KNOWN_LIMITATIONS.md §3.5 Resolved` (★ 갱신 예정)
+    - **다음 단계**: 5장 sample batch + V7 검증 → Phase 17 정규 평가

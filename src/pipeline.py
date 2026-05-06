@@ -241,8 +241,11 @@ class Pipeline:
     def _ensure_alphabetical(self) -> None:
         if self.skip_alphabetical or self._donut_a is not None:
             return
-        from src.stage3_alphabetical import load_model  # noqa: PLC0415
-        log.info("Loading Donut Alphabetical (zero-shot) ...")
+        # ★ Phase 15c (D-039): Stage 3-A backend = PaddleOCR-VL-1.5 (subprocess wrapper).
+        # 기존 Donut DocVQA (D-018) 폐기 — D-038 1차 Rescue 4% 실패 박제.
+        # subprocess 가 .venv-paddleocr (transformers 5.0.0) 에서 실행 → venv 충돌 회피.
+        from src.stage3_alphabetical_paddleocr import load_model  # noqa: PLC0415
+        log.info("Loading PaddleOCR-VL-1.5 (Stage 3-A backend, D-039) ...")
         self._donut_a = load_model(device=self.device)
 
     def _ensure_numerical(self) -> None:
@@ -304,7 +307,8 @@ class Pipeline:
         if self.skip_alphabetical:
             return None
         self._ensure_alphabetical()
-        from src.stage3_alphabetical import predict_one  # noqa: PLC0415
+        # ★ Phase 15c (D-039): PaddleOCR-VL-1.5 backend.
+        from src.stage3_alphabetical_paddleocr import predict_one  # noqa: PLC0415
         processor, model, device = self._donut_a
         try:
             return predict_one(

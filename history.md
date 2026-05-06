@@ -2943,3 +2943,176 @@ class DonutTrainer(Trainer):
 2. ja_drawing 영역별 Stage 3-A 평가 (D-048 후속, 옵션)
 3. **Phase 17 e2e** — pipeline.py 통합 평가 (Stage 1 + 2 + 3-A + 3-N 종합)
 4. Phase 15c 백엔드 교체 (vLLM) 또는 Phase 15d Notes Rescue
+
+### A.12.12 ★ V6 검증 결과 + D-051 가설 검증 + Phase 17 진입 (2026-05-06 11:28)
+
+#### A.12.12.1 V6 검증 실행 흐름
+
+`src/extract_test_set_for_v6.py` (★ 신규) → `stage3_numerical.py batch` → `check_stage3n_numerical.py`:
+
+```
+1. extract_test_set_for_v6.py
+   - Phase 16b 학습과 동일 split (seed=42, group-aware D-024, 70/20/10)
+   - test 1,187 region → completed=True 만 593 (Measure 554 / Roughness 39 / GDT 0)
+2. stage3_numerical.py batch (★ 신규 fix: --device cuda:0, 0 형식 미지원)
+   - 593 patches 처리 ~18분 (10:49:57 → 11:08:22, 1.85초/region)
+   - Final ckpt: checkpoints/donut_numerical/final
+   - 593/593 *.num.json + manifest.json 생성
+3. check_stage3n_numerical.py 검증
+   - 593 pairs evaluated (unmatched 0, incomplete 0, errors 0)
+```
+
+#### A.12.12.2 ★ V6 검증 결과 (FAIL — PASS 2 / WARN 2 / FAIL 3)
+
+| # | 항목 | 결과 | 임계 | 판정 | 논문 비교 |
+|---|---|---|---|---|---|
+| 1 | field_f1[Measure] | **0.3786** | ≥0.90 | ❌ FAIL | 논문 0.923 의 41% |
+| 2 | field_f1[Roughness] | 0.0000 | ≥0.95 | ⚠️ WARN | D-051 일치 |
+| 3 | field_f1[overall] | 0.3543 | — | INFO | 논문 0.963 의 37% |
+| 4 | **★ numerical_accuracy** | **0.0343** | ≥0.95 | ❌ FAIL | nominal ±0.01mm 매칭 3.4% |
+| 5 | tolerance_match | 0.9982 | ≥0.90 | ✅ PASS | null 도 매칭 |
+| 6 | Ra_accuracy | 0.0000 | ≥0.90 | ⚠️ WARN | D-051 일치 |
+| 7 | **★ hallucination_rate** | **0.7201** | ≤0.10 | ❌ FAIL | 논문 0.067 의 **11배** |
+| 8 | hallucination[Measure] | 0.7011 | — | INFO | 70% 환각 |
+| 9 | hallucination[Roughness] | 1.0000 | — | INFO | 100% 환각 |
+| 10 | empty_rate | 0.0000 | ≤0.05 | ✅ PASS | 응답 정상 |
+
+**산출물**: `reports/2026-05-06_stage3n.{html,json}`
+
+#### A.12.12.3 ★ D-051 가설 검증 결과 (★ 핵심)
+
+**가설**: "Measure nominal extraction 1차 baseline 으로 Phase 17 e2e 자리 채움 가능"
+
+| 가설 항목 | 검증 결과 | 판정 |
+|---|---|---|
+| 학습 자체 진행 | loss plateau 0.92, empty 0%, hang 없음 | ✅ |
+| 구조 학습 (JSON) | tolerance_match 99.82% | ✅ |
+| **★ Nominal 정확도** | numerical_accuracy 3.43% | ❌ |
+| **★ Hallucination 제어** | 72% (논문 11배) | ❌ |
+| Phase 17 자리 채움 | 구조 OK / 정확도 X | ⚠️ 부분 |
+
+**원인 분석** (★ 박제 가치):
+1. **D-050 검증** — Tesseract OCR 노이즈가 GT 에 그대로 들어가 모델이 노이즈 패턴 학습
+2. **D-051 한계 노출** — Auto-fill regex 만으로는 정확도 baseline 부족
+3. **검수 도구 필수** — Phase 16a 본래 의도 (사람 검수 후 학습) 우회한 결과
+
+#### A.12.12.4 ★ D-055 박제 — V6 baseline 결과 + 후속 정책
+
+- **현 상태**: 1차 baseline 학습 + 추론 + 검증 파이프라인 모두 작동 ✅
+- **정확도**: ★ 검수 없이는 사실상 사용 불가 (nominal 3.4%, hallucination 72%)
+- **다음 단계** (사용자 결정):
+  1. ★ Phase 17 e2e 진입 (D-051 의도대로 자리 채움 + 후속 우선순위 정량화)
+  2. 검수 도구 작성 (Phase 18, ★ KNOWN_LIMITATIONS Critical 1순위)
+  3. PaddleOCR-VL 을 patch OCR 에 활용 시도 (D-050 후속)
+
+#### A.12.12.5 박제 산출물
+
+- **신규 코드**: `src/extract_test_set_for_v6.py` (~110 lines, group-aware split)
+- **신규 fix 박제 가치**: `--device cuda:0` (numeric str `'0'` 거부) — D-038 (rescue) 와 동일 패턴
+- **추론 결과**: `outputs/stage3n_baseline_v1_predictions/` (593 *.num.json + manifest.json, ~180KB)
+- **검증 리포트**: `reports/2026-05-06_stage3n.{html,json}`
+- **본 절**: `history.md §A.12.12`
+
+### A.12.13 ★ Phase 15c 완료 — pipeline.py 의 PaddleOCR-VL backend 통합 (2026-05-06 12:00~14:55)
+
+#### A.12.13.1 배경
+
+Phase 17 e2e smoke test 시 pipeline.py 가 D-018 Donut DocVQA (폐기 모델) 호출 — D-039 PaddleOCR-VL-1.5 backend 통합이 미완료 상태로 발견.
+
+**호환성 issue**: `.venv` (transformers 4.49.0) 가 `.venv-paddleocr` (5.0.0) 의 `AutoModelForImageTextToText.PaddleOCRVLConfig` 미지원 → venv 통합 어려움.
+
+**해결**: ★ Subprocess wrapper (옵션 B) — long-running worker + JSON line protocol.
+
+#### A.12.13.2 신규 코드 (2개 모듈)
+
+- `src/stage3_alphabetical_paddleocr_worker.py` (★ 신규 ~270 lines, `.venv-paddleocr` 실행)
+  - PaddleOCR-VL-1.5 로드 (D-042 monkey-patch + bf16)
+  - D-046 호출 방식 (task keyword + apply_chat_template + decode 슬라이스)
+  - stdin JSON line 프로토콜 (`{image_path, region_type, language_hint}` → `{fields/items, raw, ...}`)
+  - READY signal 후 stdin loop
+- `src/stage3_alphabetical_paddleocr.py` (★ 신규 ~260 lines, `.venv` 실행, pipeline.py import)
+  - `PaddleOCRWorker` 클래스 (subprocess Popen + 통신)
+  - `load_model()` / `predict_one()` (pipeline.py 호환 인터페이스)
+  - Singleton + atexit hook (좀비 worker 방지)
+
+#### A.12.13.3 ★ 4개 누적 fix (★ Phase 15c 통합 PASS 의 핵심)
+
+| # | Fix | 증상 | 해결 |
+|---|---|---|---|
+| 1 | **stderr 파일 redirect** | Worker init 시 transformers 5.0.0 warning 다수 → stderr PIPE buffer (~64KB) 가득 → write block → READY 못 보냄 → wrapper 무한 대기 (★ 46분+ deadlock 발생) | `stderr=open(stderr_log, 'w')` (PIPE 대신 파일) → buffer 무한 |
+| 2 | **atexit hook + shutdown signal** | Ctrl+C 시 SIGINT race condition → worker 좀비 (init 입양) → GPU 점유 잔존 | `atexit.register(_worker.shutdown)` + 명시적 `{"action": "shutdown"}` line |
+| 3 | **`images_kwargs` 제거** | `TypeError: merged_typed_dict.__init__() got unexpected keyword 'max_pixels'` — PaddleOCR-VL processor strict validation | `processor.apply_chat_template(...)` 에서 `images_kwargs={"max_pixels": ...}` 제거 → processor default 사용 |
+| 4 | **출력 키 mismatch fix** | pipeline.py 가 `rec["fields"]` (TitleBlock) / `rec["items"]` (Notes) 기대 vs worker 가 `rec["title_block"]` / `rec["notes"]` 반환 → 통합 JSON 비어있음 | worker `to_pipeline_record()` 에서 `fields` / `items` 키로 변경. TitleBlock 의 raw text 는 `fields["_raw_text"]` 임시 저장 (후속 OTSL parser 미구현) |
+
+#### A.12.13.4 pipeline.py 변경 (line 244, 307 — 2줄)
+
+```python
+# Before
+from src.stage3_alphabetical import load_model
+from src.stage3_alphabetical import predict_one
+
+# After (★ Phase 15c)
+from src.stage3_alphabetical_paddleocr import load_model
+from src.stage3_alphabetical_paddleocr import predict_one
+```
+
+기존 `stage3_alphabetical.py` (D-018 Donut DocVQA) 보존 — fallback 가능 + 박제 보존.
+
+#### A.12.13.5 ★ Smoke test 풀 e2e PASS (2026-05-06 14:43~14:55)
+
+```
+시작: 14:43:40
+Worker READY: 14:46:19 (load=99.3s)
+Stage 3-A (8 requests): 414.678s
+Stage 3-N: 171.953s
+종료: 14:55:29 (총 638초 = 10분 38초)
+Worker shut down: 14:55:31 (atexit 정상 작동)
+```
+
+**결과 (★ Phase 15c 검증)**:
+- ✅ `title_block: 1 필드` (`_raw_text`: `"<fcel>DEVELOPMENT COPY<nl>"`, 26 chars)
+- ⚠️ `notes: 0 items` (Notes crop 1개의 OCR 결과 빈 문자열 — 작은 crop)
+- ✅ `views: 6` (정상)
+- ✅ Worker 8 requests 정상 처리 + 정상 종료
+
+**Worker 직접 호출 검증** (CLI debug):
+```
+TitleBlock crop 1개 → OTSL Table 출력 정상:
+"<fcel>BASE SECTION<fcel>NORMAL<fcel>LEAD<fcel>2.91.37<nl>
+ <fcel>TOOTH PROFILE<fcel>SPIN TOOTHPLATE<fcel>LEAD ANGLE<fcel>...
+ <fcel>MODULE<fcel>0.92<fcel>OUT DIAMETER<fcel>#8.812.268<nl>
+ ..."
+```
+→ ★ PaddleOCR-VL OTSL 출력 정상 (D-047 일치)
+
+#### A.12.13.6 ★ 발견 — 다중 TitleBlock merge 정책 개선 필요
+
+pipeline.py line 395 `title_block_out.update({k: v for k, v in rec["fields"].items() if v})`:
+- 7개 TitleBlock crop 처리 → 각 결과를 동일 `_raw_text` 키로 update
+- ★ 마지막 crop 결과가 이전 모두 덮어씀
+- Worker 직접 호출에서 풍부한 OTSL 출력했지만 pipeline 통합 시 마지막 짧은 `"DEVELOPMENT COPY"` 만 보존
+
+**후속 (Phase 18+)**:
+- pipeline.py 의 multi-TB merge 정책 개선 — 모든 raw_text 합침 또는 confidence-based 선택
+- OTSL parser 작성 (D-047) — 23 필드 (D-044) 자동 매핑
+
+#### A.12.13.7 박제 산출물
+
+신규 코드:
+- `src/stage3_alphabetical_paddleocr_worker.py` (★ 신규 ~270 lines)
+- `src/stage3_alphabetical_paddleocr.py` (★ 신규 ~260 lines)
+- `src/pipeline.py` 변경 (line 244, 307 — import 변경)
+
+산출물:
+- `outputs/pipeline_e2e_full_smoke` (★ 통합 JSON, 63KB, title_block + notes + 6 views)
+- `outputs/paddleocr_worker.stderr.log` (worker debug log)
+- `outputs/_pipeline_tmp/<id>/{stage1_crops,stage2_warps}/` (디버깅용 임시 파일)
+
+#### A.12.13.8 다음 단계
+
+1. ★ 박제 + git commit + push (안정 지점 확보)
+2. 5장 sample batch + V7 검증 (Phase 17 정규)
+3. 후속 (Phase 18+):
+   - 검수 도구 작성 (D-050 한계 해결)
+   - OTSL parser (D-044 23 필드 매핑)
+   - multi-TB merge 정책 개선

@@ -12,19 +12,24 @@
 
 ---
 
-## 0. 개요 — 우선순위 매트릭스 (2026-05-05 기준)
+## 0. 개요 — 우선순위 매트릭스 (★ 2026-05-06 V6 검증 결과 반영)
 
-| Priority | Stage | 항목 | 영향 | 후속 시점 |
-|---|---|---|---|---|
-| ★★★ Critical | 3-N | Tesseract OCR 도면 patch 한계 — tolerance / GDT symbol 인식 불가 | 학습 데이터 GT noisy | Phase 17 e2e 후 검수 도구 작성 |
-| ★★★ Critical | 2 | GDT 라벨 절대 부족 (~2.6%) | Stage 3-N GDT 학습 사실상 불가 | 후속 라벨링 라운드 (~500 GDT crop) |
-| ★★ High | 3-A | ja_drawing 다중 도면 처리 미검증 | 6개 언어 중 1개 실패 | Phase 15c 후속 (영역별 Stage 3-A 평가) |
-| ★★ High | 3-A | V5 char accuracy ~0.69 (목표 ≥ 0.85) | 부분 PASS 만 | Phase 15c 백엔드 교체 + Notes Rescue |
-| ★★ High | Pipeline | 검수 도구 (web UI) 부재 | 사람 검수 비용 ↑ | Phase 17 후 (CVAT or 자체 도구) |
-| ★ Medium | 1 | stage1_fp_notes (Notes 클래스 false positive) | Stage 3-A Notes 정확도 ↓ | Phase 15d Notes Rescue |
-| ★ Medium | 1 | 가공/조립 자동 분류 실패 (D-026) | 데이터 정리 효율 ↓ | sort_by_yolo_pmi 부분 대체 |
-| ★ Medium | 3-N | Roughness Ra OCR fallback 30% 한계 | Roughness 학습 데이터 부족 | OCR 한계와 동일 |
-| ☆ Low | 1 | Version A 회전 증강 한계 (D-036) | mAP@50 0.86 — V.A 통과 | 추가 라벨링 시 재학습 |
+| Priority | Stage | 항목 | 영향 | ★ 추천 해결 방법 (구체) | ETA |
+|---|---|---|---|---|---|
+| ★★★ Critical | 3-N | **D-050 Tesseract OCR 도면 patch 한계** | nominal acc 3.4% / hallucination 72% (V6) | **Streamlit/CVAT 검수 도구 + 사람 검수 ~3일 → Stage 3-N 재학습** | 1주 |
+| ★★★ Critical | Pipeline | **검수 도구 (web UI) 부재** | 사람 검수 효율 X / Phase 16a noisy GT | Streamlit 자체 작성 (~1주, 이미지 + JSON dual-pane + 단축키) **OR** CVAT JSON adapter | 1주 |
+| ★★★ Critical | 3-N | **★ V6 numerical_accuracy 3.43%** (D-055) | Donut baseline 사용 불가 | (1) 검수 GT 로 재학습 (2) PaddleOCR-VL patch OCR 대체 시도 (D-050) | 2주 |
+| ★★★ Critical | 3-N | **★ V6 hallucination_rate 72%** (논문 11배) | 신뢰도 저하 | constrained generation (regex grammar) + post-filter + 검수 GT 재학습 | 2주 |
+| ★★★ Critical | 2 | GDT 라벨 절대 부족 2.6% | GDT 학습 사실상 불가 (auto-fill 0.2%) | **extract_gdt_crops.py 작성 + CVAT 라벨링 ~500 crop ~3일** + Stage 2 재학습 (overnight) | 1주 |
+| ★★ High | 3-A | ja_drawing 다중 도면 영역별 미검증 | 6개 언어 중 ja 실패 | Stage 1 110 region 분리 → 영역별 PaddleOCR-VL 평가 (옵션, 30분, 코드 변경 X) | 1일 |
+| ★★ High | 3-A | V5 char accuracy 0.69 < 0.85 | 부분 PASS | (1) Phase 15c vLLM 백엔드 (속도 7x ↑) (2) Phase 15d Notes Rescue (3) PaddleOCR-VL fine-tune (Phase 18+) | 2주 |
+| ★★ High | 3-N | Roughness Ra fallback 18.4% | 학습 데이터 부족 | D-050 검수 도구로 함께 해결 (Ra 영역만 ~50개 검수) | 1주 |
+| ★ Medium | 1 | stage1_fp_notes (false positive) | Notes 정확도 ↓ | rescue_misclassified_notes.py + PaddleOCR-VL backend (Phase 15d) | 1일 |
+| ★ Medium | 1 | D-026 가공/조립 자동 분류 실패 | 데이터 정리 효율 ↓ | sort_by_yolo_pmi (PMI 카운트 기반) 부분 대체 — ★ 현 상태 유지 권장 | (보류) |
+| ★ Medium | Pipeline | Phase 17 e2e 부분 진행 | 종합 점수 측정 X | smoke test PASS (D-056 Phase 15c 완료) → 5장 batch + V7 검증 | 1일 |
+| ★ High | Pipeline | multi-TitleBlock merge 정책 (D-056 후속) | 7개 TB 중 마지막만 보존 | confidence-based 선택 또는 모든 raw_text 합침 (~3일) | Phase 18 |
+| ☆ Low | 1 | D-036 V.A 회전 증강 한계 | mAP@50 0.86 — V.A 통과 | V.B 라벨링 시 albumentations ±90° 추가 (Phase 18+) | (Phase 18+) |
+| ☆ Low | 2 | V3-B Ensemble 추가 fold 효과 | 통과 후 추가 효과 ↓ | 10-fold 시도 — ROI 낮음 (★ 보류) | (보류) |
 
 ---
 
@@ -229,20 +234,38 @@ config.text_config = config.get_text_config()  # monkey-patch
 **영향**:
 - ★ tolerance regex 매칭 0% (OCR 출력에 `±` 기호 자체가 없음)
 - ★ GDT symbol 매칭 0% (의미 있는 텍스트 X)
-- ★ Roughness Ra 매칭 30% 한계
+- ★ Roughness Ra 매칭 18.4% (전체 데이터 적용 결과, dry-run 30% 보다 낮음)
+- **★ V6 검증 (D-055, 2026-05-06)**: Phase 16b baseline 학습 후 numerical_accuracy **3.43%** / hallucination **72%** — 학습 자체는 진행되지만 정확도는 사실상 사용 불가 수준 → ★ 검수 GT 필수성 검증 완료
 
-**상태**: ★★★ Critical, 미해결 (regex 보강 효과 ≈ 0)
+**상태**: ★★★ Critical, 미해결 (regex 보강 효과 ≈ 0, V6 검증 결과로 검수 필요성 확정)
 
-**후속 옵션** (우선순위 순):
-- 1) **(★ 권장)** 검수 도구 작성 + 사람 검수 (Phase 17 후, ~3일)
-   - CVAT 같은 web UI 또는 자체 작성 (Streamlit 등)
-   - GT field 수동 채움 → tolerance / GDT symbol / Ra 정확도 ↑↑
-- 2) PaddleOCR-VL 을 patch OCR 에 활용 (Tesseract 대체)
-   - PaddleOCR-VL 의 `OCR:` task keyword 가 patch text 에 효과적일 수 있음
-   - 실험 필요 (Phase 16c 후속)
-- 3) 도메인 특화 OCR 모델 fine-tune (long-term)
+**★ 추천 해결 방법** (우선순위순, 정량 효과 + 비용):
 
-### 4.2 D-051 — Phase 16b 1차 baseline 정의 (Active)
+| # | 방법 | 예상 효과 | 비용 | 우선순위 |
+|---|---|---|---|---|
+| 1 | **Streamlit/CVAT 검수 도구 작성 + 사람 검수 ~3일** | nominal acc 3.4% → 70%+ / hallucination 72% → 10% 이하 | 도구 ~1주 + 검수 ~3일 | ★★★ 1순위 |
+| 2 | **PaddleOCR-VL patch OCR 대체** (Tesseract → PaddleOCR-VL `OCR:` task) | OCR hint 정확도 ↑↑ → auto-fill 50% → 80%+ | ~1~2일 실험 | ★★ 2순위 (#1 병행) |
+| 3 | **constrained generation (regex grammar)** | hallucination 72% → 30% 이하 (GT 학습 없이) | ~1주 (transformers logits processor) | ★★ 단기 완화 |
+| 4 | 도메인 특화 OCR 모델 fine-tune (e.g. TrOCR-printed) | 모든 한계 해결 가능 but 비용 큼 | ~1개월 (~5,000 검수 patch) | ★ Phase 18+ |
+
+**구체 명령** (#1 검수 도구):
+```bash
+# 1. Streamlit 검수 도구 작성 (~1주, 작성 후 git commit)
+# src/review_tool_streamlit.py
+# - Phase 16a 산출 JSON 11,470 region 검수
+# - 좌측 이미지 + 우측 JSON form (단축키 1/2/3 = Measure/GDT/Roughness)
+# - manifest.csv 자동 갱신 + completed=True 마킹
+
+# 2. 검수 진행 (~3일, 사용자)
+streamlit run src/review_tool_streamlit.py -- --root data/vlm/numerical/
+
+# 3. Stage 3-N 재학습 (~6h overnight)
+python src/stage3_numerical.py train --cfg configs/donut_numerical.yaml --device cuda:0
+
+# 4. V6 재평가 (목표: numerical_accuracy ≥ 70%, hallucination ≤ 10%)
+```
+
+### 4.2 D-051 — Phase 16b 1차 baseline 정의 + ★ D-055 V6 검증 결과 (Active)
 
 **정책**:
 - ★ Phase 16b Donut numerical fine-tune = **Measure nominal extraction baseline only**
@@ -250,13 +273,35 @@ config.text_config = config.get_text_config()  # monkey-patch
 - Phase 17 e2e 검증의 "Stage 3-N 자리만 채우기" 목적
 
 **근거**:
-- Measure auto-fill 성공률 62.2% × 데이터 ~13,000 → nominal 학습 가능 sample ~7,000
-- GDT 자동 매핑 0% → 학습 데이터 사실상 부재
-- Roughness 30% × 1,460 → ~440 sample (제한적)
+- Measure auto-fill 성공률 61.5% × 데이터 11,470 → nominal 학습 가능 sample 5,381
+- GDT 자동 매핑 0.2% → 학습 데이터 사실상 부재
+- Roughness 18.4% × 2,189 → 402 sample (제한적)
 
-**후속**:
-- Phase 17 e2e 평가에서 Stage 3-N edit_distance 기준 (D-013) 부분 PASS 인정
-- Phase 18+ 검수 + GDT 라벨 보강 후 재학습
+**★ V6 검증 결과 (D-055, 2026-05-06)**:
+
+| 항목 | 결과 | 임계 | 판정 | 비고 |
+|---|---|---|---|---|
+| field_f1[Measure] | 0.3786 | ≥0.90 | ❌ | 논문 0.923 의 41% |
+| numerical_accuracy ★ | **0.0343** | ≥0.95 | ❌ | nominal ±0.01mm 매칭 3.4% |
+| tolerance_match | 0.9982 | ≥0.90 | ✅ | null 도 매칭 (구조 학습 OK) |
+| hallucination_rate ★ | **0.7201** | ≤0.10 | ❌ | 논문 0.067 의 11배 |
+| empty_rate | 0.0000 | ≤0.05 | ✅ | 응답 정상 |
+
+**가설 검증**:
+- ✅ "학습 자체 진행 가능" — loss plateau 0.92, empty 0%
+- ✅ "구조 (JSON / null) 학습 OK" — tolerance_match 99.82%
+- ❌ "정확한 값 예측" — numerical_accuracy 3.4% (사실상 사용 불가)
+- ❌ "Hallucination 제어" — 72% (매우 심각)
+
+**★ 추천 해결 방법**:
+
+| # | 방법 | 예상 효과 | 비용 | 우선순위 |
+|---|---|---|---|---|
+| 1 | **검수 GT 로 재학습** (§4.1 #1 과 연계) | numerical 3.4% → 70%+ | 도구 ~1주 + 검수 ~3일 + 재학습 6h | ★★★ |
+| 2 | **D-051 baseline 인정** (Phase 17 e2e 자리 채움) | 종합 평가 + 후속 우선순위 정량화 | 즉시 (별도 비용 X) | ★★★ (현 결정) |
+| 3 | **GDT/Roughness 추가 라벨링** (§2.1 결합) | per-class F1 보강 | ~3일 라벨링 + 6h 학습 | ★★ Phase 18+ |
+
+**현 상태 (사용자 결정, 2026-05-06)**: 옵션 #2 — Phase 17 e2e 진입 후 정량화 → #1 우선순위로 진행.
 
 ### 4.3 D-049 — sys.path bootstrap (Resolved)
 
@@ -364,6 +409,8 @@ if str(_PROJECT_ROOT_BOOT) not in sys.path:
 | D-052 | Donut data_collator 호환성 (default_data_collator 적용) | Phase 16b |
 | D-053 | DonutTrainer subclass — transformers 5.x num_items_in_batch 호환 | Phase 16b |
 | D-054 | Phase 16b 1차 baseline 학습 성공 (eval_loss 0.9581, 6h 23분) | Phase 16b |
+| D-055 | V6 baseline 검증 (numerical 3.4% / hallucination 72%) — D-051 가설 검증 완료 | Phase 16c |
+| D-056 | Phase 15c — pipeline.py PaddleOCR-VL backend 통합 (subprocess wrapper + 4 fix) | Phase 15c |
 
 ---
 

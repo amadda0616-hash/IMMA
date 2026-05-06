@@ -1344,6 +1344,346 @@ sleep 300 && tail -50 outputs/stage3n_train.log
 
 ---
 
-## 7. Step 4 — VLM 학습 데이터 시드 자동 생성
 
-Stage 2 학습 완료 후 ★ Step 6 학습
+## 7. Step 4 — VLM 학습 데이터 시드 자동 생성 (`prepare_vlm_dataset.py`)
+
+**Phase 16a 의 핵심 — 도면 → Stage 1 + Stage 2 추론 → de-rotation crop → JSON 템플릿 생성**.
+
+### 7.1 CLI (★ 인자명 정정 — D-049 sys.path bootstrap 적용)
+
+```bash
+deactivate && source .venv/bin/activate
+
+python src/prepare_vlm_dataset.py numerical \
+    --dataset dataset/ \
+    --det-weights checkpoints/yolo_det.pt \
+    --obb-weights checkpoints/yolo_obb.pt \
+    --device 0 \
+    --ocr-prefill \
+    --limit 500
+```
+
+**3가지 서브커맨드**:
+- `numerical` (★ Phase 16a 사용) — Stage 2 OBB → Measure/GDT/Roughness patch
+- `alphabetical` — Stage 1 → TitleBlock/Notes crop (Phase 15 후속)
+- `all` — 위 2개 동시
+
+**핵심 옵션**:
+- `--ocr-prefill`: Pytesseract 으로 `_review.ocr_hint` 자동 채움 (★ D-050 한계 인지)
+- `--limit N`: 처리 도면 수 제한 (디버깅/sample)
+- `--device 0` (numeric str — D-038 동일 패턴, OK)
+
+### 7.2 산출물 구조
+
+```
+data/vlm/numerical/
+├── manifest.csv                                  # group_key + 통계
+├── <drawing>__View_<i>__Measure_<j>.jpg          # 회전 정렬된 patch
+├── <drawing>__View_<i>__Measure_<j>.json         # GT 템플릿 (★ null 다수)
+└── ...
+```
+
+**JSON 템플릿 예시**:
+```json
+{
+  "type": "Measure",
+  "nominal": null,         ← ★ 사람 검수 또는 auto_fill 필요
+  "tolerance": null,
+  "unit": "mm",
+  "_review": {
+    "completed": false,
+    "ocr_hint": "12.5±0.05",
+    "ocr_numeric": 12.5
+  }
+}
+```
+
+### 7.3 후속 — Auto-fill (`auto_fill_numerical_gt.py`, D-050 한계 인지)
+
+Phase 16a 의 null GT 를 1차 baseline 학습용으로 자동 채움:
+
+```bash
+python src/auto_fill_numerical_gt.py \
+    --report outputs/auto_fill_numerical_report.md
+```
+
+**실측 결과** (11,470 region 기준):
+- Overall fill rate 50.4% (5,784 completed)
+- Measure 61.5% / GDT 0.2% / Roughness 18.4%
+- D-050: Tesseract OCR 한계로 tolerance / GDT symbol / Ra 정확도 ↓
+
+상세: `docs/KNOWN_LIMITATIONS.md §4.1, §4.2` (★ Critical, 검수 도구 필요).
+
+---
+
+## 8. Stage 4 — JSON Merger + 통합 JSON
+
+`pipeline.py` 가 Stage 1 → Stage 2 → Stage 3-A → Stage 3-N 결과를 **단일 통합 JSON** 으로 병합 (HANDOFF §5.5 schema).
+
+### 8.1 통합 JSON 구조
+
+```json
+{
+  "drawing_id": "0301040003_SHAFT-...",
+  "image_path": "dataset/<sample>.jpg",
+  "image_size": [W, H],
+  "title_block": { ... },              // Stage 3-A (PaddleOCR-VL, D-039)
+  "notes": [ ... ],                    // Stage 3-A
+  "views": [
+    {
+      "view_id": "view_0",
+      "bbox": [x1, y1, x2, y2],
+      "annotations": [
+        {
+          "class": "Measure",
+          "obb_global": [[x,y]*4],     // 글로벌 좌표 (Stage 4 변환)
+          "obb_local":  [[x,y]*4],     // view-crop 좌표
+          "angle": 12.5,
+          "conf": 0.93,
+          "parsed": { ... }            // Stage 3-N JSON
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "model_versions": { ... },
+    "timing_seconds": { "stage1": 1.2, "stage2": 6.0, "stage3_alphabetical": 50.3, "stage3_numerical": 178.0, "total": 235.5 },
+    "timestamp": "2026-05-06T13:14:00Z"
+  }
+}
+```
+
+### 8.2 OBB 글로벌 좌표 변환
+
+각 View crop 안의 OBB 는 local 좌표 → Stage 4 가 view bbox + 회전 행렬 적용해 **원본 도면 좌표** 로 자동 변환 (`obb_global`). 통합 JSON 의 사용자 검수 / Step 9 enrichment 입력으로 활용.
+
+---
+
+## 9. Step 7 — End-to-end Pipeline (`pipeline.py`)
+
+### 9.1 CLI (★ 2026-05-06 검증)
+
+```bash
+PYTHONPATH=. python src/pipeline.py run \
+    --image dataset/<sample>.jpg \
+    --donut-num checkpoints/donut_numerical/final \
+    --device cuda:0 \
+    --language en \
+    --out outputs/pipeline_e2e_smoke \
+    --keep-tmp
+```
+
+**핵심 인자**:
+- `--image` (필수): 입력 도면 1장
+- `--out`: 출력 JSON 파일 경로 (★ 디렉토리 X, 단일 파일)
+- `--donut-num`: Stage 3-N 체크포인트 (`checkpoints/donut_numerical/final`)
+- `--use-ensemble` (default): Stage 2 5-fold ensemble (D-040 PASS)
+- `--no-ensemble`: 단일 fold (디버깅)
+- `--ensemble-ckpt-root`: K-fold ckpt 루트 (default `checkpoints/yolo_obb_runs/`)
+- `--language`: en / ko / ja / ru / zh / de (Stage 3-A hint)
+- `--skip-numerical` / `--skip-alphabetical`: 단계 분리
+- `--keep-tmp`: 디버깅용 임시 파일 보존
+
+### 9.2 Phase 17 진입 — Smoke test (2026-05-06 진행)
+
+**옵션 A — 안전 (Stage 3-A skip)**:
+```bash
+PYTHONPATH=. python src/pipeline.py run \
+    --image dataset/<sample>.jpg \
+    --donut-num checkpoints/donut_numerical/final \
+    --device cuda:0 --skip-alphabetical \
+    --out outputs/pipeline_e2e_smoke --keep-tmp
+# ~3분 50초, Stage 1 + 2 + 3-N 만 검증
+```
+
+**옵션 B — 풀 e2e (Stage 3-A 통합, ★ Phase 15c 후 가능)**:
+```bash
+# Phase 15c (PaddleOCR-VL backend 통합) 완료 후 가능
+PYTHONPATH=. python src/pipeline.py run \
+    --image dataset/<sample>.jpg \
+    --donut-num checkpoints/donut_numerical/final \
+    --device cuda:0 --language en \
+    --out outputs/pipeline_e2e_full --keep-tmp
+# ~6~8분, subprocess wrapper 통해 .venv-paddleocr 호출
+```
+
+### 9.3 Batch 모드
+
+```bash
+PYTHONPATH=. python src/pipeline.py batch \
+    --input-dir data/pipeline_e2e_eval/ \
+    --donut-num checkpoints/donut_numerical/final \
+    --device cuda:0 \
+    --out outputs/pipeline_e2e_baseline_v1/
+# (배치 인자는 batch --help 로 별도 확인)
+```
+
+---
+
+## 10. Step 8 — Validation 프레임워크 (V0 ~ V9)
+
+각 Stage 의 사후 검증 도구 — `src/validate/check_*.py`. ★ D-013 임계값 + V6 D-023 critical.
+
+| Validator | 대상 | 임계값 | 상태 |
+|---|---|---|---|
+| V0 `common.py` | Helper | — | ✅ |
+| V1 `check_step1_5_sorter.py` | Step 1.5 분류 정확도 | per-language | ✅ |
+| V2-A `check_labels_yolo.py` | YOLO det 라벨 | bbox 유효성 | ✅ PASS |
+| V2-B `check_stage1_model.py` | Stage 1 모델 | mAP@50 ≥ 0.85 | ✅ V.A 0.94 |
+| V3-A `check_labels_obb.py` | OBB 라벨 | obb 유효성 | ✅ |
+| V3-B `check_stage2_model.py` | Stage 2 모델 | D-023 critical | ✅ Ensemble PASS |
+| V5 `check_stage3a_alphabetical.py` | Stage 3-A | char acc ≥ 0.85 | ⚠️ 부분 PASS (4차 0.69) |
+| V6 `check_stage3n_numerical.py` | Stage 3-N | D-023 hallucination ≤ 0.10 | ❌ FAIL (D-055, V6 baseline 0.34/0.72) |
+| V7 `check_pipeline_e2e.py` | e2e | field_f1 등 | ⏳ 미진행 |
+| V9 `check_enrichment.py` | Step 9 | provenance / cost | ⏳ 미진행 |
+
+### 10.1 V6 검증 흐름 (★ Phase 16c)
+
+```bash
+# 1. Test set 분리 (group-aware D-024, seed=42)
+PYTHONPATH=. python src/extract_test_set_for_v6.py
+# → outputs/test_set_v6/{Measure,GDT,Roughness}/ + gt/
+
+# 2. Stage 3-N batch 추론 (~18분)
+PYTHONPATH=. python src/stage3_numerical.py batch \
+    --input-dir outputs/test_set_v6/ \
+    --ckpt checkpoints/donut_numerical/final \
+    --device cuda:0 \
+    --out-dir outputs/stage3n_baseline_v1_predictions/
+
+# 3. V6 검증 (~10초)
+PYTHONPATH=. python src/validate/check_stage3n_numerical.py \
+    --predictions outputs/stage3n_baseline_v1_predictions/ \
+    --gt outputs/test_set_v6/gt/ \
+    --reports-dir reports/
+```
+
+**실측 (D-055, 2026-05-06)**:
+- field_f1[Measure] 0.379 / numerical_accuracy 0.034 / hallucination 0.720
+- 1차 baseline 학습 결과 — D-051 가설 검증 완료 (검수 GT 필수성)
+
+---
+
+## 11. Step 9 — Stage 5 Enrichment (★ KNOWN_LIMITATIONS 해결 후 진행)
+
+**4-tier cascade** — Stage 4 통합 JSON 의 누락/추정 필드 보강.
+
+### 11.1 Tier 흐름
+
+| # | Tier | 처리 | 비용 | 신뢰도 |
+|---|---|---|---|---|
+| 1 | Deterministic | KB lookup (material_catalog.json 등) | 0 | ★★★ |
+| 2 | Heuristic | regex / 임계값 (Ra<0.4 → grinding) | 0 | ★★ |
+| 3 | RAG-LLM | Mock / Gemini / Qwen | $$ | ★ |
+| 4 | HITL gate | low conf flag (★ 사람 검수) | 사람 시간 | (검수 후 ★★★) |
+
+각 필드에 ★ provenance (source / confidence / cost, D-022) 자동 박제.
+
+### 11.2 CLI
+
+```bash
+PYTHONPATH=. python src/stage5_enrichment.py \
+    --input outputs/pipeline_e2e_baseline_v1/<drawing>.json \
+    --output outputs/enriched/<drawing>.enriched.json \
+    --provider mock      # mock / gemini / qwen
+```
+
+### 11.3 ★ 정책 (D-051/D-055 후속)
+
+★ Step 9 Enrichment 는 **KNOWN_LIMITATIONS Critical 항목 (D-050 OCR / D-055 baseline 정확도) 해결 후 진행**. 현재 Stage 4 통합 JSON 의 정확도가 낮아 Enrichment 효과 측정 어려움. Phase 18 검수 도구 + 재학습 후 V9 평가 진행.
+
+---
+
+## 12. Phase 15c — PaddleOCR-VL backend 통합 (★ 진행 중, 2026-05-06)
+
+### 12.1 배경
+
+`pipeline.py` 가 D-018 Donut DocVQA (폐기) 호출 → D-039 PaddleOCR-VL-1.5 backend 로 교체.
+
+**문제**: `.venv` (transformers 4.49.0) 가 `.venv-paddleocr` (5.0.0) 의 `AutoModelForImageTextToText.PaddleOCRVLConfig` 미지원.
+
+**해결**: ★ Subprocess wrapper (옵션 B) — long-running worker + JSON line protocol.
+
+### 12.2 구조
+
+```
+[.venv]                                  [.venv-paddleocr]
+src/stage3_alphabetical_paddleocr.py     src/stage3_alphabetical_paddleocr_worker.py
+       (wrapper)                                 (worker)
+
+pipeline.py
+  ↓ from src.stage3_alphabetical_paddleocr import load_model, predict_one
+  ↓ subprocess.Popen(.venv-paddleocr/bin/python, worker.py)
+  worker stdout → JSON line: {"title_block": {...}}
+  worker stderr → outputs/paddleocr_worker.stderr.log (★ 파일 redirect, deadlock 방지)
+```
+
+### 12.3 핵심 fix 박제
+
+- D-042 monkey-patch (`config.text_config = config.get_text_config()`)
+- D-046 호출 방식 (task keyword + bf16 + apply_chat_template)
+- ★ stderr 파일 redirect (PIPE buffer deadlock 방지)
+- ★ atexit hook + shutdown signal (좀비 worker 방지)
+
+### 12.4 디버깅
+
+```bash
+# Worker stderr 실시간 watch
+tail -f outputs/paddleocr_worker.stderr.log
+
+# 좀비 worker 정리
+pkill -f paddleocr_worker
+```
+
+---
+
+## 13. 다음 단계 (Phase 17+)
+
+### 13.1 Phase 17 e2e 정규 평가 (Phase 15c 완료 후)
+
+1. 5장 sample batch → V7 검증
+2. 부분 PASS 인정 (Stage 3-N D-051 baseline + Stage 3-A 부분)
+3. 후속 우선순위 정량화
+
+### 13.2 Phase 18 — 검수 도구 + 재학습 (★ 최우선)
+
+★ KNOWN_LIMITATIONS Critical 1순위:
+1. Streamlit/CVAT 검수 도구 작성 (~1주)
+2. 사람 검수 ~3일 (Phase 16a JSON GT 채움)
+3. Stage 3-N 재학습 (~6h overnight)
+4. V6 재평가 (목표 numerical_accuracy ≥ 70%, hallucination ≤ 10%)
+
+### 13.3 Phase 19+ — Step 9 Enrichment + 종합 평가
+
+1. KB 강화 (material_catalog 다국어 보강)
+2. Enrichment 4-tier cascade 평가 (V9)
+3. 종합 V7 e2e 통과 → 운영 준비
+
+---
+
+## 14. 트러블슈팅 (★ 박제)
+
+| 문제 | 원인 | 해결 |
+|---|---|---|
+| `ModuleNotFoundError: 'src'` | sys.path 미적용 | `PYTHONPATH=. python ...` 또는 D-049 bootstrap 적용 |
+| `Invalid device string: '0'` | numeric str 미지원 | `--device cuda:0` (D-038 패턴) |
+| `pip install src` 시도 | PyPI 외부 패키지 | ★ 절대 금지 (D-049 박제) |
+| Worker timeout / deadlock | stderr PIPE buffer 가득 | 파일 redirect (Phase 15c fix) |
+| Donut data_collator ValueError | input_ids 키 누락 | `default_data_collator` (D-052) |
+| `num_items_in_batch` TypeError | transformers 5.x 호환성 | DonutTrainer subclass (D-053) |
+| stage3_numerical.py EOF SyntaxError | 중복 코드 추가 | head -748 + 정리 |
+| transformers 5.6.2 vs 4.49.0 박제 불일치 | 실제 .venv = 4.49.0 | 박제 정정 필요 (후속) |
+
+---
+
+## 15. 참고 문서 (★ 단일 source of truth)
+
+- [`README.md`](./README.md) — 프로젝트 진입 + 진행 현황 (Day 1~4 LIVE)
+- [`PROJECT_HANDOFF.md`](./PROJECT_HANDOFF.md) — 전체 의사결정 (D-001 ~ D-055)
+- [`history.md`](./history.md) — 시간순 학습 이력 (Version A, Day 1~4, Phase 14~16)
+- [`docs/KNOWN_LIMITATIONS.md`](./docs/KNOWN_LIMITATIONS.md) ★ 한계 / 미해결 단일 source + 추천 해결 방법
+- [`PIPELINE.md`](./PIPELINE.md) — Phase 1~17 흐름도
+- [`docs/NEXT_SESSION_GUIDE.md`](./docs/NEXT_SESSION_GUIDE.md) — 다음 세션 진입 가이드
+- [`docs/PHASE15_CHECKLIST.md`](./docs/PHASE15_CHECKLIST.md) — Phase 15 체크리스트
+- [`outputs/workflow_diagram_v4.png`](./outputs/workflow_diagram_v4.png) — v4 한글 다이어그램
+- [`outputs/IMMA_progress_report_v4.docx`](./outputs/IMMA_progress_report_v4.docx) — 동료 공유용 진행 보고서
