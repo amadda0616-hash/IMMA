@@ -31,7 +31,7 @@ data:
 
 # ---- 학습 (논문 재현) ----
 train:
-  epochs: 30
+  epochs: 15
   batch_size: 4              # 논문 그대로
   optimizer: adamw
   learning_rate: 1.0e-6      # 논문: 1e-6

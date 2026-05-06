@@ -1,16 +1,18 @@
-# 다음 세션 시작 가이드 (★ 2026-05-06 아침)
+# 다음 세션 시작 가이드 (★ 2026-05-06 PC 재부팅 후)
 
-> **현재 상태 (2026-05-05 EOD, ★ Phase 16b overnight 학습 진행 중)**:
-> - Phase 14 ✅ / Phase 15a ✅ / Phase 15b 1차~4차 ✅ (V5 부분 PASS)
-> - Stage 1 ja_drawing 분리 검증 ✅ (D-048 박제, 110 region)
-> - Phase 16a VLM pair 준비 ✅ / **Phase 16b 학습 overnight 진행 중**
+> **현재 상태 (2026-05-06 07:30 EOD, ★ Phase 16b 학습 ✅ 완료)**:
+> - Phase 14 ✅ / Phase 15a ✅ / Phase 15b 1~4차 ✅ (V5 부분 PASS)
+> - Stage 1 ja_drawing 분리 검증 ✅ (D-048, 110 region)
+> - Phase 16a 완료 ✅ (11,470 region, 24분)
+> - **★ Phase 16b 1차 baseline 학습 성공 ✅** (01:06~07:29, 6h 23분, eval_loss 0.9581, D-052/D-053 fix 검증)
+> - Final ckpt: `checkpoints/donut_numerical/final/` (809MB)
 >
-> **다음 세션 (아침 8~9시 가정)**:
-> 1. **Phase 16b 학습 결과 확인 + V6 검증** (★ D-023 critical) — 30분
-> 2. ja 영역별 Stage 3-A 평가 (옵션) — 30분
-> 3. Phase 15c stage3_alphabetical.py 백엔드 교체 — 1h
-> 4. Phase 15d Notes Rescue 재실행 — 30분
-> 5. Phase 17 e2e batch 시작 (옵션) — 5,839장 batch ~14h
+> **다음 세션 (재부팅 후) 우선순위**:
+> 1. **★ V6 검증 (Phase 16c)** — `check_stage3n_numerical.py` (D-013 임계값 비교) — 30분
+> 2. ja 영역별 Stage 3-A 평가 (D-048 후속, 옵션) — 30분
+> 3. **★ Phase 17 e2e 진입** — pipeline.py 통합 평가 — 1h
+> 4. Phase 15c stage3_alphabetical.py 백엔드 교체 (vLLM) — 1h
+> 5. Phase 15d Notes Rescue 재실행 (PaddleOCR-VL backend) — 30분
 
 ---
 

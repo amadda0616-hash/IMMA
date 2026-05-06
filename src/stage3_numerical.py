@@ -395,7 +395,18 @@ def train(cfg_path: Path,
         VisionEncoderDecoderModel,
         Trainer,
         TrainingArguments,
+        default_data_collator,
     )
+
+    # ★ D-053 fix (2026-05-06): transformers 5.x 가 compute_loss 에서
+    # `num_items_in_batch` kwargs 를 model.forward 에 전달.
+    # DonutSwinModel.forward() 는 미지원 → TypeError.
+    # Custom Trainer subclass 로 compute_loss override 하여 kwargs 흡수.
+    class DonutTrainer(Trainer):
+        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+            outputs = model(**inputs)
+            loss = outputs.loss
+            return (loss, outputs) if return_outputs else loss
 
     cfg = load_cfg(cfg_path)
     model_cfg = cfg.get("model", {})
@@ -505,12 +516,18 @@ def train(cfg_path: Path,
         remove_unused_columns=False,
     )
 
-    trainer = Trainer(
+    trainer = DonutTrainer(
         model=model,
         args=args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
         tokenizer=processor.tokenizer,
+        # ★ D-052 fix (2026-05-06): Donut batch (pixel_values/labels/decoder_input_ids)
+        # 는 input_ids 키 없음 → HF default DataCollatorWithPadding 의 tokenizer.pad()
+        # 호출 시 ValueError. default_data_collator 는 단순 stack 만 수행해 호환.
+        # ★ D-053 fix (2026-05-06): DonutTrainer subclass 로 compute_loss override
+        # → transformers 5.x 의 num_items_in_batch kwargs 흡수.
+        data_collator=default_data_collator,
     )
 
     log.info("Starting training (%d epochs, batch=%d, lr=%.2e, %s)",
@@ -746,17 +763,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-                    default=str(DEFAULT_CKPT_DIR / "final"))
-    pb.add_argument("--device", type=str, default=None)
-    pb.set_defaults(func=cmd_batch)
 
-    return p.parse_args()
-
-
-def main() -> int:
-    args = parse_args()
-    return args.func(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main())

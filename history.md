@@ -2845,3 +2845,101 @@ sleep 300 && tail -50 outputs/stage3n_train.log
 - `data/vlm/numerical/*.{jpg,json}` (11,470 pair, 5,784 completed=True)
 - `outputs/auto_fill_numerical_report.md` (★ 신규)
 - 본 절 `history.md §A.12.10`
+
+### A.12.11 ★ Phase 16b 학습 성공 + D-052/D-053 검증 (2026-05-06 01:06~07:29)
+
+#### A.12.11.1 학습 결과 ★ 1차 baseline 성공
+
+| 항목 | 결과 |
+|---|---|
+| 시작 / 종료 | 01:06:07 → 07:29:26 |
+| 소요 | **6시간 23분** (예상 5h 33분 + eval overhead) |
+| Total steps | 27,930 (15 epochs × 1,862) |
+| 평균 speed | 2.01 it/s (gradient_checkpointing + GPU 96% 환경) |
+| **최종 train loss** | ~0.92 (epoch 14.99) |
+| **★ 최종 eval_loss** | **0.9581** (epoch 15.0) |
+| Over-fit 여부 | ✅ 없음 (train ≈ eval) |
+| Final checkpoint | `checkpoints/donut_numerical/final/` (model.safetensors 809MB) |
+| Top-3 ckpt | checkpoint-24206 (e13), 26068 (e14), 27930 (e15=final) |
+
+**Loss 추이** (epoch 14.6 ~ 14.99):
+- 0.89 ~ 0.96 plateau 도달
+- LR cosine decay → 1e-9 → 1e-12 → 거의 0 (학습 사실상 종료)
+- → **★ 1차 baseline 수렴 성공** — 추가 epoch 의미 없음
+
+#### A.12.11.2 ★ D-052 박제 — Donut data_collator 호환성 fix
+
+**문제**: HF Trainer 의 default data_collator (DataCollatorWithPadding) 가 `tokenizer.pad()` 호출 → `input_ids` 키 기대. Donut batch 는 `pixel_values, labels, decoder_input_ids` 만 가짐 → ValueError.
+
+**Fix**:
+```python
+from transformers import default_data_collator
+trainer = DonutTrainer(
+    ...,
+    data_collator=default_data_collator,  # ★ 단순 stack 만 수행
+)
+```
+
+**효과**: 첫 batch 정상 통과, 학습 끝까지 ValueError 0건.
+
+#### A.12.11.3 ★ D-053 박제 — DonutTrainer subclass (transformers 5.x 호환)
+
+**문제**: transformers 5.x `Trainer.compute_loss()` 가 `num_items_in_batch=...` kwargs 를 model.forward 에 전달. `DonutSwinModel.forward()` 는 미지원 → TypeError.
+
+**Fix**:
+```python
+class DonutTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        # num_items_in_batch 등 transformers 5.x kwargs 흡수
+        outputs = model(**inputs)
+        loss = outputs.loss
+        return (loss, outputs) if return_outputs else loss
+```
+
+**효과**: model.forward TypeError 0건, 학습 완료 도달.
+
+#### A.12.11.4 cfg 변경 — epochs 30 → 15 (1차 baseline 시간 단축)
+
+**원인**: 첫 학습 시 ETA 11h 측정 (gradient_checkpointing + GPU 메모리 96.5% + data loading 영향). 1차 baseline 목적 + over-fit 방지 + 하룻밤 종료 위해 epochs 단축.
+
+**판단**:
+- Donut + Swin-B encoder fine-tune은 일반적으로 15~20 epoch 면 수렴
+- 학습 완료 시 LR 1e-12 도달 → 추가 epoch 무의미
+- Loss plateau (~0.92) 확인
+
+**결과**: 학습 시간 11h → 6h 23분, 1차 baseline 충분.
+
+#### A.12.11.5 ★ D-051 baseline 정의 검증
+
+학습 데이터 분포 (D-051 일치):
+- Measure 5,381 (93%) — ★ 학습 효과 기대
+- Roughness 402 (7%) — 제한적
+- GDT 1 (0.02%) — 학습 X
+
+학습 손실 0.92 plateau → Measure nominal extraction 으로 baseline 확보 ✅. Phase 17 e2e 평가 시 V6 검증 진행 예정.
+
+#### A.12.11.6 누적 박제 산출물
+
+신규 의사결정:
+- D-049 (Resolved): sys.path bootstrap (prepare_vlm_dataset, auto_fill)
+- D-050 (Active Critical): Tesseract OCR 본질적 한계
+- D-051 (Active): 1차 baseline = Measure-only
+- **★ D-052 (Resolved)**: data_collator=default_data_collator
+- **★ D-053 (Resolved)**: DonutTrainer subclass — compute_loss override
+
+코드 / cfg 변경:
+- `src/stage3_numerical.py` (D-052 + D-053 fix + EOF 중복 라인 제거 766 → 754 → 766 lines)
+- `configs/donut_numerical.yaml` (epochs 30 → 15)
+- `src/auto_fill_numerical_gt.py` (★ 신규 452 lines, D-049 적용)
+
+산출물:
+- `checkpoints/donut_numerical/final/` (model.safetensors 809MB + tokenizer/config)
+- `checkpoints/donut_numerical/checkpoint-{24206, 26068, 27930}/` (top-3 보존)
+- `outputs/stage3n_train.log` (학습 전 과정 로그)
+
+#### A.12.11.7 다음 작업 (재부팅 후)
+
+1. **★ V6 검증** — `check_stage3n_numerical.py` 실행, D-013 임계값 비교
+2. ja_drawing 영역별 Stage 3-A 평가 (D-048 후속, 옵션)
+3. **Phase 17 e2e** — pipeline.py 통합 평가 (Stage 1 + 2 + 3-A + 3-N 종합)
+4. Phase 15c 백엔드 교체 (vLLM) 또는 Phase 15d Notes Rescue

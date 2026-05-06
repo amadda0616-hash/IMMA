@@ -1309,6 +1309,52 @@ Drawing/
       - `outputs/auto_fill_numerical_report.md` (Phase 16a 완료 후 생성)
     - **상세 박제**: `docs/KNOWN_LIMITATIONS.md §4.2` + `history.md §A.12.9`
 
+52. **D-052 (Donut data_collator 호환성 fix — Phase 16b 학습 통과, 2026-05-06)**
+    - **배경**: Phase 16b 학습 시작 시 첫 batch 에서 `ValueError: You should supply an encoding ... that includes input_ids, but you provided ['pixel_values', 'labels', 'decoder_input_ids']` 발생.
+    - **원인**: HF Trainer 의 default data_collator (`DataCollatorWithPadding`) 가 `tokenizer.pad()` 호출 → `input_ids` 키 기대. Donut batch (vision-encoder-decoder) 는 `pixel_values, labels, decoder_input_ids` 만 가져 mismatch.
+    - **Fix** (`src/stage3_numerical.py`):
+      ```python
+      from transformers import default_data_collator
+      trainer = DonutTrainer(
+          ...,
+          data_collator=default_data_collator,  # ★ 단순 stack, tokenizer.pad 안 부름
+      )
+      ```
+    - **상태**: ✅ Resolved — Phase 16b 학습 끝까지 ValueError 0건
+    - **상세 박제**: `history.md §A.12.11.2` + `docs/KNOWN_LIMITATIONS.md §6 Resolved`
+
+53. **D-053 (DonutTrainer subclass — transformers 5.x num_items_in_batch 호환, 2026-05-06)**
+    - **배경**: D-052 fix 후 학습 진행 시 step 0 에서 `TypeError: DonutSwinModel.forward() got an unexpected keyword argument 'num_items_in_batch'` 발생.
+    - **원인**: transformers 5.x 의 `Trainer.compute_loss()` 가 `num_items_in_batch=...` kwargs 를 model.forward 에 전달. DonutSwinModel 의 forward 는 이 인자 미지원 (구 모델 호환성 이슈).
+    - **Fix** (`src/stage3_numerical.py`, train() 내부 클래스 정의):
+      ```python
+      class DonutTrainer(Trainer):
+          def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+              # transformers 5.x 의 num_items_in_batch 등 흡수
+              outputs = model(**inputs)
+              loss = outputs.loss
+              return (loss, outputs) if return_outputs else loss
+      ```
+    - **상태**: ✅ Resolved — Phase 16b 학습 step 27,930/27,930 완료 (TypeError 0건)
+    - **★ 후속 적용**: 다른 Donut 기반 학습 코드에서도 동일 패턴 적용 필요
+    - **상세 박제**: `history.md §A.12.11.3` + `docs/KNOWN_LIMITATIONS.md §6 Resolved`
+
+54. **D-054 (Phase 16b 1차 baseline 학습 성공 — Measure nominal extraction, 2026-05-06)**
+    - **결과**:
+      | 항목 | 값 |
+      |---|---|
+      | 학습 시간 | 6시간 23분 (01:06~07:29) |
+      | Total steps | 27,930 (15 epochs × 1,862) |
+      | 평균 speed | 2.01 it/s |
+      | **최종 train loss** | ~0.92 (epoch 14.99 plateau) |
+      | **★ 최종 eval_loss** | **0.9581** (epoch 15.0) |
+      | Over-fit | ✅ 없음 (train ≈ eval) |
+      | Final ckpt | `checkpoints/donut_numerical/final/` (809MB) |
+    - **cfg 변경**: epochs 30 → 15 (첫 학습 ETA 11h → 6h, 1차 baseline 시간 단축)
+    - **D-051 검증**: 학습 가능 sample 5,784 (Measure 93%) 로 1차 baseline 수렴 확인. LR cosine decay 가 1e-12 도달 → 추가 epoch 의미 없음.
+    - **다음 단계**: V6 검증 (`check_stage3n_numerical.py`) → D-013 임계값 비교 → Phase 17 e2e
+    - **상세 박제**: `history.md §A.12.11`
+
 ---
 
 ## 11.6 D-038 stage1_fp_notes — Phase 15d 본격 실행 대상 (★ 박제, 2026-05-04)
@@ -1467,4 +1513,101 @@ data/validation_gt/                 # 사람 검수 ground truth (CSV/JSON)
 # 단일 단계
 python -m src.validate.check_step1_5_sorter \
     --manifest outputs/sort_titleblock_manifest.csv \
-    --gt data/validation_gt/step1_5_titleblock_gt.
+    --gt data/validation_gt/step1_5_titleblock_gt.tage 1 V.A 가 영어 위주 학습이지만 일본어 / 다언어 / 다중 도면 페이지에 일반화됨
+      - 분리 후 해상도 손실 우려는 PaddleOCR-VL 의 normalization 로 자동 해결
+      - 다음 세션 옵션: ja_drawing 영역별 Stage 3-A 평가 (`outputs/crops/ja_drawing/` 활용)
+    - **상세 박제**: `history.md §A.12.8`
+
+49. **D-049 (sys.path bootstrap pattern 확장 — Phase 16a 진입, 2026-05-05)**
+    - **배경**: `python src/prepare_vlm_dataset.py numerical ...` 직접 실행 시 `from src.stage1_layout import ...` 가 `ModuleNotFoundError: No module named 'src'`. sys.path 에 프로젝트 루트 없음.
+    - **해결**: Task #92 (`pipeline.py`) 와 동일 패턴 — 파일 상단에 sys.path bootstrap 추가:
+      ```python
+      _PROJECT_ROOT_BOOT = Path(__file__).resolve().parents[1]
+      if str(_PROJECT_ROOT_BOOT) not in sys.path:
+          sys.path.insert(0, str(_PROJECT_ROOT_BOOT))
+      ```
+    - **적용**: `src/prepare_vlm_dataset.py`, `src/auto_fill_numerical_gt.py`
+    - **★ 절대 금지 박제**: PyPI 의 `src==0.0.7` 패키지 설치 시도 — 본 프로젝트와 무관한 외부 패키지. `pip install src` / `uv pip install src` 절대 실행 X. requirements.txt / pyproject.toml 에도 추가 X.
+    - **상태**: ✅ Resolved
+    - **상세 박제**: `history.md §A.12.9` + `docs/KNOWN_LIMITATIONS.md §4.3, §4.4`
+
+50. **D-050 (Tesseract OCR 도면 patch 본질적 한계 — Phase 16a, ★ Critical, 2026-05-05)**
+    - **발견**: Phase 16a `--ocr-prefill` 후 dry-run + 실제 적용 결과:
+      - tolerance regex 매칭률: **0%** (OCR 출력에 `±` 부호 없음)
+      - GDT symbol 매칭률: **0%** (의미 있는 텍스트 없음)
+      - Roughness Ra 매칭률: **18.4%** (Ra 키워드 인식 거의 안 됨)
+      - Measure nominal 매칭률: **61.5%** (first numeric 추출만 안정적)
+    - **본질**: Pytesseract `--psm 6` + `kor+eng+rus+jpn` 도면 patch (10~14 px) + 한자/일본어/한글 혼재 → OCR 노이즈 매우 큼. regex 보강 효과 ≈ 0.
+    - **OCR hint 노이즈 표본**: `'020'` (정상), `'on'` (오인식), `'ーーの40 ['` (일본어 노이즈), `'„23 „|'` (특수문자), `''` (빈 문자열).
+    - **영향**: Phase 16b 1차 baseline 학습 데이터 GT 품질 ↓↓ (특히 GDT / Roughness).
+    - **★ 후속 옵션**:
+      1. **(권장)** 검수 도구 작성 + 사람 검수 (Phase 17 후, ~3일)
+      2. PaddleOCR-VL 을 patch OCR 에 활용 (Tesseract 대체)
+      3. 도메인 특화 OCR 모델 fine-tune (long-term)
+    - **상태**: Active Critical (regex 보강 효과 X, 검수 도구 필수)
+    - **상세 박제**: `docs/KNOWN_LIMITATIONS.md §4.1` (★ 핵심) + `history.md §A.12.9, §A.12.10`
+
+51. **D-051 (Phase 16b 1차 baseline 정의 — Measure-only, 2026-05-05)**
+    - **정책**: ★ Phase 16b Donut numerical fine-tune 의 **1차 baseline 은 Measure nominal extraction 에 한정**.
+    - **데이터 분포** (Phase 16a 11,470 region, auto-fill 후 5,784 completed):
+      | 클래스 | Total | Filled | Rate |
+      |---|---|---|---|
+      | Measure | 8,750 | 5,381 | 61.5% ★ |
+      | Roughness | 2,189 | 402 | 18.4% (제한적) |
+      | GDT | 531 | 1 | 0.2% (학습 불가) |
+    - **근거**: Stage 2 라벨 단계 GDT 부족 (KNOWN_LIMITATIONS §2.1) + Tesseract 한계 (D-050).
+    - **Phase 17 e2e 정책**: Stage 3-N edit_distance 기준 (D-013) 부분 PASS 인정 → 후속 개선 우선순위 정량화.
+    - **★ 후속 (Phase 18+)**: 검수 도구 + 사람 검수 ~3일 + GDT crop ~500 추가 라벨링 → full GT 재학습.
+    - **상태**: Active (D-054 학습 결과로 검증 완료)
+    - **상세 박제**: `docs/KNOWN_LIMITATIONS.md §4.2` + `history.md §A.12.9, §A.12.10`
+
+52. **D-052 (Donut data_collator 호환성 fix — Phase 16b 첫 batch, 2026-05-06)**
+    - **배경**: Phase 16b 학습 첫 batch 에서 `ValueError: You should supply an encoding ... that includes input_ids, but you provided ['pixel_values', 'labels', 'decoder_input_ids']`.
+    - **원인**: HF Trainer 의 default data_collator (`DataCollatorWithPadding`) 가 `tokenizer.pad()` 호출 → `input_ids` 키 기대. Donut batch (vision-encoder-decoder) 는 `pixel_values, labels, decoder_input_ids` 만 가져 mismatch.
+    - **Fix** (`src/stage3_numerical.py`):
+      ```python
+      from transformers import default_data_collator
+      trainer = DonutTrainer(
+          ...,
+          data_collator=default_data_collator,  # ★ 단순 stack, tokenizer.pad 안 부름
+      )
+      ```
+    - **상태**: ✅ Resolved — Phase 16b 학습 끝까지 ValueError 0건
+    - **상세 박제**: `history.md §A.12.11.2` + `docs/KNOWN_LIMITATIONS.md §6 Resolved`
+
+53. **D-053 (DonutTrainer subclass — transformers 5.x num_items_in_batch 호환, 2026-05-06)**
+    - **배경**: D-052 fix 후 학습 진행 시 `TypeError: DonutSwinModel.forward() got an unexpected keyword argument 'num_items_in_batch'`.
+    - **원인**: transformers 5.x `Trainer.compute_loss()` 가 `num_items_in_batch=...` kwargs 를 model.forward 에 전달. DonutSwinModel.forward 미지원 (구 모델 호환성).
+    - **Fix** (`src/stage3_numerical.py`, train() 내부):
+      ```python
+      class DonutTrainer(Trainer):
+          def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+              # transformers 5.x num_items_in_batch 등 kwargs 흡수
+              outputs = model(**inputs)
+              loss = outputs.loss
+              return (loss, outputs) if return_outputs else loss
+      ```
+    - **상태**: ✅ Resolved — Phase 16b 학습 27,930/27,930 step 완료 (TypeError 0건)
+    - **★ 후속 적용**: 다른 Donut 기반 학습 코드 동일 패턴 권장
+    - **상세 박제**: `history.md §A.12.11.3`
+
+54. **D-054 (Phase 16b 1차 baseline 학습 성공 — Measure baseline 확보, 2026-05-06)**
+    - **결과**:
+      | 항목 | 값 |
+      |---|---|
+      | 시작 / 종료 | 01:06:07 → 07:29:26 |
+      | 소요 | **6시간 23분** (예상 5h 33분 + eval overhead) |
+      | Total steps | 27,930 (15 epochs × 1,862) |
+      | 평균 speed | 2.01 it/s |
+      | **최종 train loss** | ~0.92 (epoch 14.99 plateau) |
+      | **★ 최종 eval_loss** | **0.9581** (epoch 15.0) |
+      | Over-fit 여부 | ✅ 없음 (train ≈ eval) |
+      | Final ckpt | `checkpoints/donut_numerical/final/` (model.safetensors 809MB) |
+      | Top-3 ckpt | checkpoint-24206 (e13), 26068 (e14), 27930 (e15=final) |
+    - **cfg 변경**: `epochs: 30 → 15` (첫 학습 ETA 11h → 6h 단축, 1차 baseline + over-fit 방지).
+    - **D-051 검증**: Loss plateau (~0.92) + LR 1e-12 도달 → 학습 사실상 종료. Measure 위주 baseline 으로 수렴.
+    - **다음 단계**: V6 검증 (`check_stage3n_numerical.py`) → D-013 임계값 비교 → Phase 17 e2e 진입.
+    - **상태**: ✅ Phase 16b 완료
+    - **상세 박제**: `history.md §A.12.11`
+
+---

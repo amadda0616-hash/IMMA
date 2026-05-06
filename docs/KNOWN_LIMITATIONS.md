@@ -361,6 +361,9 @@ if str(_PROJECT_ROOT_BOOT) not in sys.path:
 | D-047 | OTSL Table Format 박제 | Phase 15b |
 | D-048 | Stage 1 V.A generalization (ja 110 region) | Phase 15b |
 | D-049 | sys.path bootstrap (prepare_vlm_dataset / auto_fill) | Phase 16a |
+| D-052 | Donut data_collator 호환성 (default_data_collator 적용) | Phase 16b |
+| D-053 | DonutTrainer subclass — transformers 5.x num_items_in_batch 호환 | Phase 16b |
+| D-054 | Phase 16b 1차 baseline 학습 성공 (eval_loss 0.9581, 6h 23분) | Phase 16b |
 
 ---
 
