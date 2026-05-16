@@ -1,0 +1,38 @@
+pathrag는 트리 같은 것 그래프라그? (1번)
+---
+멀티모달 그래프? (8번)
+멀티모달 그래프(Multimodal Graph)는 텍스트, 이미지, 오디오, 영상, 센서 데이터 등 
+서로 다른 형태의 데이터(Modality)를 하나의 그래프 구조 내에서 통합하여 
+표현하고 처리하는 기술
+---
+manurag multi-modal: 제조 산업 분야의 복잡한 질문에 답하기 위해 
+설계된 멀티모달 검색 증강 생성 프레임워크
+
+llama-index: 데이터를 LLM에 연결하여 활용할 수 있도록 돕는 대표적인 데이터 프레임워크
+특정 조건(이벤트)이 발생할 때만 동작하는 비동기식 설계
+
+langchain: LLM(대형 언어 모델)을 활용한 애플리케이션 개발을 가속화하는 가장 대중적인 오픈소스 프레임워크
+
+graphrag: LangChain의 핵심으로 자리 잡은 순환(Cyclic) 그래프 프레임워크
+
+lay-outlmv3: 텍스트와 이미지, 그리고 문서 내 위치 정보(Layout)를 
+한꺼번에 학습하는 멀티모달 사전학습 모델-문서의 시각적 특징을 직접 학습
+파트너=YOLOv8
+
+MLLM: 텍스트를 넘어 이미지, 오디오, 비디오 등 **다양한 형태의 데이터(Modality)**를 
+동시에 이해하고 생성할 수 있는 차세대 대규모 언어 모델-핵심
+
+MQA
+Manufacturing Question Answering or Multi-Query Attention
+
+이미지 인덱싱 및 검색에 clip: 이미지와 텍스트를 동일한 벡터 공간에 매핑하여 
+'이미지를 텍스트처럼', 혹은 '텍스트를 이미지처럼' 검색할 수 있게 해주는 핵심 기술
+
+raghq: 데이터=텍스트 + 이미지 + 수식 + 표
+
+MCQ: Multiple Choice Question or Multi-Channel Quantization
+
+RQ: 연구 질문 or 검색 품질
+
+MATHQ: ManuRAG 프레임워크에서 정의한 수학적 질의응답(Mathematical Question Answering) 태스크 또는 그에 특화된 데이터셋
+

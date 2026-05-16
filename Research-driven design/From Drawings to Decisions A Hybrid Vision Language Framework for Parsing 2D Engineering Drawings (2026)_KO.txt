@@ -1,0 +1,110 @@
+테서렉트: 사진을 테서렉트로 돌리면 텍스트로 바꿔서 돌려주는 오픈소스 프로그램.
+도면 텍스트 읽는 기본 도구
+- *Python*
+
+지금 우리가 하는 작업은 객체탐지만으로 안 되고 OCR 필요하다... '-'
+
+도면 이미지
+→ 기호 탐지(YOLO/VLM)
+→ 글자 읽기(Tesseract/OCR)
+→ JSON 구조화
+
+
+Tesseract
+PaddleOCR
+PaddleOCR + YOLO 
+PaddleOCR + YOLO + Donut
+VLM + structured JSON orchestration
+!vlm 쓰는 경우, 비용 문제 생길 가능성 높음
+Gemini Pro나 GPT-4o 같은 외부 API를 쓰면 한 장당 비용이 발생
+내부 API로 쓸 수 있는 오픈소스 VLM 모델들
+Moondream2
+LLaVA
+Qwen-VL
+Donut
+
+외부 API 비용이나 보안이 걱정된다면, 
+Ollama나 vLLM을 활용해서 LLaVA나 Qwen-VL 같은 오픈소스 모델을 
+우리 서버에 올려 내부 API로.
+-> railway 서버 감당 안되고, gpu 없이 cpu로도 힘듬.
+
+Railway
+- FastAPI
+- Swagger
+- PostgreSQL 연결
+- 요청/응답
+- DB 저장
+
+GCP GPU 서버
+- Qwen-VL / LLaVA / vLLM / Ollama
+- 도면 이미지 분석
+- JSON 결과 생성
+
+........................................................................................................
+
+vlm 담당하는 사람이 gcp 쪽에 vlm을 올려주면, 올려줄 수 있다면...
+
+거기랑 레일웨이랑 서버 연결해서 
+db에 저장.
+
+Railway FastAPI
+→ POST https://gcp-vlm-server/analyze
+→ 이미지/도면 파일 전송
+→ VLM 서버가 JSON 반환
+→ Railway가 DB에 저장
+
+---
+
+[사용자]
+   ↓
+[Railway FastAPI 서버]
+   ↓  이미지 전송
+[GCP VLM 추론 서버]
+   ↓  JSON 반환
+[Railway FastAPI]
+   ↓
+[PostgreSQL 저장]
+
+근데 레일웨이 서버가 호출 감당이 되는가?
+* 호출 중계 정도는 감당 가능
+호출이 URL 전달 방식이면 거의 KB 수준으로 줄어든다.
+
+-최신 모델 권장-  *ai*
+Qwen2.5-VL 계열이 꽤 좋아 보여. 공식 기술보고서에서도 문서 파싱, 객체 위치 추정, 시각 인식, structured output을 강조하고 있고, Ollama 라이브러리에서도 Qwen2.5-VL이 bounding box/좌표와 structured output을 지원한다고 설명돼 있어. vLLM도 Qwen2.5-VL 실행 가이드를 공식으로 제공해.
+
+-> 물론 그냥 외부 api로 호출해서 그냥 말그대로 조금만 실험하는 정도라면 문제 없을 것
+같다고는 생각한다. 단, 양이 많아지면 감당이 안될 것 같다.
+--- 물론 지금은 도면 이미지 분석을 vlm 담당자가 로컬 gpu로 돌리는 중이다...
+
+vired
+
+미세조정을 하였을 때, 오픈소스 모델이 비오픈 소스 모델보다 성능이 더 나올 수도 있다.
+ex) florence-2          [제로샷]
+
+객체탐지+vlm                 yolo11-obb
+
+범주별 스키마로 정의된 구조화된 json 라벨.
+
+
+donut                ocr 
+
+donut 미세조정
+
+유니코드로 인코딩된-... 기호가 많은 형식에서 donut이 우위
+
+gui: 장난감
+
+스템(mes)
+
+포컬 손실
+
+클래스 가중치 훈련 
+
+정교한 재표폰 추출 기법
+
+그라운드 트루스
+
+
+
+
+ 

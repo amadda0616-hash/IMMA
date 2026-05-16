@@ -1,0 +1,9 @@
+OmEGa(𝛺) Ontology-based information extraction framework for - 제조 현장의 복잡한 비정형 문서(텍스트, 이미지, 표 등)에서 정보를 추출하여, 단순한 나열이 아닌 **'작업(Task) 중심의 지식 그래프(KG)'**로 변환하는 프레임워크
+,
+Hybrid Agentic AI and Multi-Agent Systems in Smart Manufacturing - 전체를 통제하는 '거대 언어 모델(LLM) 플래너 에이전트'와 그 아래에서 특정 작업만 빠르게 수행하는 '경량/규칙 기반 에이전트'들이 협력하는 하이브리드 다중 에이전트 시스템(MAS) 구조
+,
+Intent-Driven Smart Manufacturing Integrating - 사용자가 자연어로 입력한 요구사항(Intent)을 Mistral-7B 기반의 LLM이 구조화된 JSON 데이터로 번역하고, 이를 ISA-95 국제 표준 규격이 적용된 지식 그래프(Neo4j)와 매핑하여 실행 가능한 제조 지시로 변환
+,
+A Dynamic Matching Approach of Manufacturing Tasks and - 제조 작업(Task)과 업체의 가용 장비(Resource)를 연결하기 위해 K-Means 및 DBSCAN 클러스터링으로 작업을 그룹화하고, 헝가리안 알고리즘(Hungarian Algorithm)과 시맨틱 유사도를 결합하여 동적으로 변하는 스케줄에 맞춰 최적의 매칭을 수행
+,
+Advancing Sustainable Supply Chains Through Knowledge - 업체, 제품, 위치, 인증 정보 등을 담은 복잡한 공급망 지식 그래프에 **그래프 신경망(GNN)**을 적용합니다. 기존 거래 이력이 없더라도 데이터 내의 잠재적 패턴을 학습하여 '새롭게 연결될 가능성이 높은(신뢰할 수 있는) 대체 공급업체'를 추론(Link Prediction)
