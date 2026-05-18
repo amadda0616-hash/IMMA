@@ -3,7 +3,7 @@
 > 2D 엔지니어링 도면 (PNG/JPG) 을 구조화 JSON 으로 자동 변환하는 Multi-Stage Hybrid VLM 파이프라인.
 > 최종 산출 JSON 은 IMMA (지능형 제조 가공 매칭 플랫폼) RAG 시스템의 raw data 로 사용된다.
 
-## TL;DR (AI 전문가용 30초 요약)
+## TL;DR
 
 - **목표**: 2D 도면 → 구조화 JSON (Title Block 15 fields + Notes + View annotations + Table)
 - **운영 모델**: **V.F-2 LOCAL Hybrid Routing (3.5B 합계)** — YOLOv11 + Qwen3-VL-2B FT + Donut FT + Nemotron-OCR-v2 Zero-shot
