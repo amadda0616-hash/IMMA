@@ -3,7 +3,74 @@
 > 2D 엔지니어링 도면 (PNG/JPG) 을 구조화 JSON 으로 자동 변환하는 Multi-Stage Hybrid VLM 파이프라인.
 > 최종 산출 JSON 은 IMMA (지능형 제조 가공 매칭 플랫폼) RAG 시스템의 raw data 로 사용된다.
 
-## TL;DR
+---
+
+## 0. 핵심 키워드 사전 (Glossary)
+
+본 프로젝트에서 반복 등장하는 24개 핵심 용어 한 줄 요약. 처음 보는 분은 여기부터.
+
+### A. Pipeline & Architecture
+
+| 키워드 | 한 줄 정의 |
+|---|---|
+| **Stage 1** | 도면을 region 단위 (Title Block / View / Notes / Table / Figure) 로 분할하는 첫 단계 — Detection 작업. |
+| **Stage 2** | 각 region 안의 세부 정보 (15 fields / GD&T / Measure / Roughness) 를 추출하는 두 번째 단계 — Parsing 작업. |
+| **Detection (객체 검출)** | 이미지에서 객체의 위치를 찾는 작업. 출력 = bounding box 좌표 + class. "어디에 무엇이 있는가?" 까지만 답함. |
+| **Parsing (내용 해석)** | 검출된 영역의 내용을 구조화 데이터로 변환. 출력 = JSON / text. "그 안에 무슨 정보가 있는가?" 까지 답함. |
+| **Hybrid Routing (하이브리드 라우팅)** | 영역별로 가장 잘하는 small 모델을 분배하는 architecture — 단일 거대 모델 대신 4가지 model 을 routing. |
+| **VLM (Vision Language Model)** | 이미지와 텍스트를 동시에 입력으로 받아 텍스트를 출력하는 멀티모달 모델 — Qwen3-VL, Florence-2, Donut 등. |
+
+### B. Detection 모델 (YOLO 모드)
+
+| 키워드 | 한 줄 정의 |
+|---|---|
+| **det (axis-aligned)** | 가로/세로축에 평행한 직사각형 bbox (회전 X). 출력 = (x_center, y_center, width, height) + class. |
+| **obb (Oriented Bounding Box)** | 회전 가능한 직사각형 bbox. 출력 = (x_center, y_center, width, height, **θ**) + class. 회전된 GD&T symbol 검출에 정확. |
+| **Region (region 단위)** | YOLO 가 검출한 도면의 시각적 분할 단위 — Stage 1 의 출력 단위 (1 도면 = 평균 4.4 region). |
+
+### C. 데이터 / Annotation
+
+| 키워드 | 한 줄 정의 |
+|---|---|
+| **Annotation (라벨링)** | 도면 이미지에 대한 정답 JSON (Ground Truth) 작성 작업 또는 그 결과물. |
+| **Patch (Khan paper 단위)** | Khan paper 의 region crop 이미지 + JSON pair 단위 — 본 프로젝트 region 단위와 동일 개념, 1 도면당 평균 8.4 patches. |
+| **Single GT annotation** | Multi-TB 도면 (TB 가 여러 개) 인데 정답 JSON 은 1개만 있는 데이터 구조 결함 — 4-Cause Cause 1 (30%). |
+| **training_gt_v2 / v3** | V.E 단계 annotation 데이터셋 — v2 는 V.B Qwen output 84% 혼재, v3 는 Gemini Flash 100% 재정제 (V.G v3 학습 base). |
+
+### D. 학습 / 추론
+
+| 키워드 | 한 줄 정의 |
+|---|---|
+| **Training (학습)** | 데이터셋으로 모델 weight 를 업데이트하는 단계 — gradient backpropagation 계산. |
+| **Fine-Tuning (FT, 미세조정)** | 사전학습된 모델을 도메인 데이터셋으로 추가 학습하는 작업 — Donut FT, Qwen3-VL FT 등. |
+| **LoRA (Low-Rank Adaptation)** | Full FT 대신 작은 rank 행렬만 학습하는 PEFT 기법 — 본 프로젝트 r=8/16/32 사용. |
+| **Zero-shot** | 학습 없이 사전학습 모델만으로 추론하는 방식 — 본 프로젝트 Nemotron-OCR-v2 가 zero-shot. |
+| **Inference (추론)** | 학습된 모델로 새 입력에 대한 예측을 생성하는 단계 — 학습(training) 의 반대 개념. |
+| **Val_loss (Validation Loss)** | 학습 중 모델이 보지 못한 holdout validation set 에서 측정한 loss — Overfitting 감지 + best epoch 선택 기준. |
+
+### E. 한계 / 결함 현상
+
+| 키워드 | 한 줄 정의 |
+|---|---|
+| **Memorization (암기 현상)** | 학습된 모델이 학습 데이터의 mode 토큰을 외워서 새 입력에도 그대로 출력하는 현상 — 정답지만 외운 학생 비유. |
+| **Mode Collapse** | 모델 출력이 다양성 잃고 특정 패턴으로 수렴하는 현상 — GD&T 14종이 모두 ⊥ 로 출력되는 V.B Stage 2 사례. |
+| **학습 데이터 Mode 출력** | 학습 데이터에 자주 등장한 특정 토큰 (PACRAFT 26회, 弁棒 254회 등) 을 모델이 그대로 반복 출력하는 현상 — 4-Cause Cause 2 (40%). |
+| **Source contamination** | Hallucination 으로 인한 동일한 잘못된 출력이 학습 데이터 source 자체에 박혀 다음 phase 로 전파되는 현상 — 4-Cause Cause 3 (20%). |
+| **Hallucination** | 도면에 없는 내용을 모델이 만들어내서 출력하는 현상 — V.A Tesseract 72%, Khan baseline Donut 10.8%. |
+| **Schema 강제력** | Model 이 structured JSON 출력을 보장하는 정도 — Donut (task token) 은 강함, Florence-2 (prompt-conditioned) 는 약함. |
+
+### F. 평가 & 분석
+
+| 키워드 | 한 줄 정의 |
+|---|---|
+| **Pro Judge** | Gemini-2.5-Pro 를 외부 평가자로 사용하는 본 프로젝트 평가 framework — 10 sample × 영역별 0-100 점수 + Verdict. |
+| **PASS / SUSPECT / FAIL (Verdict)** | Pro Judge 판정 — 모두 60+ = PASS, 일부 30-60 = SUSPECT, 30 미만 또는 mode 출력 = FAIL. |
+| **4-Cause Root Analysis** | TB 영역 미달 원인을 4가지로 정량 분해한 분석 — Cause 1 (Multi-TB 30%) + 2 (Mode 40%) + 3 (Source 20%) + 4 (Mixing 10%). |
+| **Fundamental Insight** | 본 프로젝트 110일간 박제된 7가지 본질적 학습 — Data Quality > Model Size, Hybrid > Single, Memo fix architecture 종속 등. |
+
+---
+
+## TL;DR (AI 전문가용 30초 요약)
 
 - **목표**: 2D 도면 → 구조화 JSON (Title Block 15 fields + Notes + View annotations + Table)
 - **운영 모델**: **V.F-2 LOCAL Hybrid Routing (3.5B 합계)** — YOLOv11 + Qwen3-VL-2B FT + Donut FT + Nemotron-OCR-v2 Zero-shot
@@ -110,7 +177,7 @@
 | Total patches | 약 6,500 region | 11,469 patches |
 | Numerical F1 | 0.3786 (V.A V.6) | 0.963 (Khan 2026) |
 
-→ Khan 영역 영역 영역 fundamental gap = patch 단위 annotation 부재 (V.A KNOWN_LIMITATIONS).
+→ Khan 과의 fundamental gap = patch 단위 annotation 부재 (V.A KNOWN_LIMITATIONS).
 
 ---
 
@@ -146,7 +213,7 @@ V.A 시점 데이터셋의 절대 부족:
 | Roughness | 11.2% (fallback 18.4%) | 60%+ | -48.8pt |
 | Measure | 86.2% | 100% | -13.8pt |
 
-→ V.B Stage 2 학습 결과 GD&T 14종 중 ⊥ 만 7% 정확, 나머지 13종 mode collapse → ⊥. V.G v3 영역 fix 시도해도 View Pro Judge 17.7 (PASS 60 미달).
+→ V.B Stage 2 학습 결과 GD&T 14종 중 ⊥ 만 7% 정확, 나머지 13종 mode collapse → ⊥. V.G v3 가 fix 시도해도 View Pro Judge 17.7 (PASS 60 미달).
 
 ---
 
@@ -180,7 +247,38 @@ Donut TB val_loss 0.4433 (V.E v2 0.6596 대비 -33% 개선) BUT Pro Judge TB **1
 
 ---
 
-## 7. Pro Judge / Memorization 종합 비교 (8 phase)
+## 7. Pro Judge 평가 framework
+
+### 평가 방식
+
+- **평가 모델**: Google Gemini-2.5-Pro (외부 평가자)
+- **입력**: 도면 이미지 1장 + 본 프로젝트 출력 JSON
+- **샘플 수**: 10 도면 (다국어 분포)
+- **비용**: 10 sample 당 약 $0.30~0.50
+
+### 영역별 채점 (0-100점)
+
+| 영역 | 평가 대상 |
+|---|---|
+| **Titleblock** | Drawing_No / Title / Material / Mass / Scale / Date / Engineer 등 15 fields, 실제 도면 영역과 비교 |
+| **Notes** | 일본어/한자/한글 OCR 정확도, Pattern 14 (다른 notes 영역 복사) 확인 |
+| **View** | 치수 (measures) / 기하공차 14종 / 표면 거칠기, Pattern 12 (다른 view 의 measure 혼입) 확인 |
+
+### Verdict 판정
+
+| Verdict | 기준 |
+|---|---|
+| **PASS** | 3 영역 모두 score 60+ |
+| **SUSPECT** | 일부 영역 30~60 사이 |
+| **FAIL** | score 30 미만 또는 mode token (PACRAFT, 弁棒, P110-8302) 의심 |
+
+### Memorization Check
+
+각 sample 마다 학습 데이터 mode token 의심 여부 (titleblock_mode / notes_mode / view_pool) Boolean 판정. 전체 10 sample 중 mode 의심 비율 = Memorization Rate.
+
+---
+
+## 8. Pro Judge / Memorization 종합 비교 (8 phase)
 
 | Phase | TB | Notes | View | Memorization | Verdict |
 |---|---|---|---|---|---|
@@ -202,7 +300,7 @@ Donut TB val_loss 0.4433 (V.E v2 0.6596 대비 -33% 개선) BUT Pro Judge TB **1
 
 ---
 
-## 8. 4-Cause Root Analysis (TB 미달 정량 분해)
+## 9. 4-Cause Root Analysis (TB 미달 정량 분해)
 
 TB Pro Judge 가 PASS 60 미달인 원인 4가지 (D-110.3 박제):
 
@@ -217,7 +315,7 @@ TB Pro Judge 가 PASS 60 미달인 원인 4가지 (D-110.3 박제):
 
 ---
 
-## 9. 7가지 Fundamental Insight
+## 10. 7가지 Fundamental Insight
 
 ### ★★★ 1. Data Quality > Model Size
 V.B Teacher 30B Memo 90% vs V.G v3 0.23B + training_gt_v3 Memo **9%**. 10배 차이. 작은 모델 + 정제 데이터 > 큰 모델 + 노이즈.
@@ -238,11 +336,11 @@ V.F-1/V.F-2/V.G v1/V.G v2 모두 동일 training_gt_v2 사용 → 모두 mode co
 V.A GD&T 2.6% + Roughness 18.4% → V.B YOLO26 outer bbox → V.E LIST 단위 → V.E v2/V.F-2/V.G v3 REGION 단위 학습 → **모든 phase View Pro Judge 5.5~17.7 (PASS 60 미달)**.
 
 ### ★ 7. TB 4-Cause Root Analysis
-§8 참조 — TB 미달은 4 cause 정량 합 (30/40/20/10%), 모델 한계 X 데이터 한계.
+§9 참조 — TB 미달은 4 cause 정량 합 (30/40/20/10%), 모델 한계 X 데이터 한계.
 
 ---
 
-## 10. 미해결 결함 + 향후 개선 방향
+## 11. 미해결 결함 + 향후 개선 방향
 
 ### 미해결 결함 4가지
 
@@ -272,7 +370,7 @@ V.A GD&T 2.6% + Roughness 18.4% → V.B YOLO26 outer bbox → V.E LIST 단위 �
 
 ---
 
-## 11. 기술 스택
+## 12. 기술 스택
 
 | Layer | Stack |
 |---|---|
@@ -293,7 +391,7 @@ V.A GD&T 2.6% + Roughness 18.4% → V.B YOLO26 outer bbox → V.E LIST 단위 �
 
 ---
 
-## 12. 디렉토리 구조
+## 13. 디렉토리 구조
 
 ```
 Drawing/
@@ -351,7 +449,7 @@ Drawing/
 
 ---
 
-## 13. 주요 Reference
+## 14. 주요 Reference
 
 ### 학술 논문 (핵심 7개)
 
@@ -380,7 +478,7 @@ Drawing/
 
 ---
 
-## 14. 학습 환경 + 운영 가동
+## 15. 학습 환경 + 운영 가동
 
 ### 학습 환경
 
@@ -419,7 +517,7 @@ bash start_tunnel.sh         # 출력의 https://xxxx.trycloudflare.com URL → 
 
 ---
 
-## 15. 결론
+## 16. 결론
 
 본 프로젝트는 V.A 의 Khan 2025 직접 재현 시도 (numerical 3.43% 실패) 부터 V.H' 의 통합 시도 (Val_loss 0.44 → Pro Judge 1.5 회귀) 까지 110일간 8개 phase 의 박제다. 최종 운영 채택 **V.F-2 LOCAL** 은 3.5B 합산으로 V.B Teacher 30B 를 모든 영역에서 능가하며 (TB +10.1, Notes +19.9), Notes 영역은 PASS 60 도달한 유일한 모델이다.
 
@@ -435,6 +533,6 @@ bash start_tunnel.sh         # 출력의 https://xxxx.trycloudflare.com URL → 
 
 ---
 
-*본 README 는 V.A → V.H' 8개 phase 의 6개 README (ver.A/B/D/E/F/G) 통합본이다. AI 전문가가 처음 본 프로젝트를 이해할 수 있도록 정량 수치 + Hyperparameter + 결정 근거를 모두 포함.*
+*본 README 는 V.A → V.H' 8개 phase 의 6개 README (ver.A/B/D/E/F/G) 통합본이다. AI 전문가가 처음 본 프로젝트를 이해할 수 있도록 핵심 키워드 사전 (§0) + 정량 수치 + Hyperparameter + 결정 근거를 모두 포함.*
 
 *마지막 업데이트: D-110.7 — V.F-2 LOCAL 운영 채택 확정.*
